@@ -3,17 +3,17 @@
   xmlns:xhtml="http://www.w3.org/1999/xhtml">
   
   <url>
-    <loc>https://shenoybr.github.io/hugo-goa-demo/categories/</loc>
+    <loc>http://simon-mo.com/categories/</loc>
     <priority>0</priority>
   </url>
   
   <url>
-    <loc>https://shenoybr.github.io/hugo-goa-demo/</loc>
+    <loc>http://simon-mo.com/</loc>
     <priority>0</priority>
   </url>
   
   <url>
-    <loc>https://shenoybr.github.io/hugo-goa-demo/tags/</loc>
+    <loc>http://simon-mo.com/tags/</loc>
     <priority>0</priority>
   </url>
   
