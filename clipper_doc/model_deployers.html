@@ -1,0 +1,1169 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>Model Deployers &mdash; Clipper 0.2.0rc1 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  
+    <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Exceptions" href="exceptions.html" />
+    <link rel="prev" title="Container Managers" href="container_managers.html" /> 
+
+  
+  <script src="_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="index.html" class="icon icon-home"> Clipper
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.2
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Python API Documentation</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="clipper_connection.html">Clipper Connection</a></li>
+<li class="toctree-l1"><a class="reference internal" href="container_managers.html">Container Managers</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Model Deployers</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#pure-python-functions">Pure Python functions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#pyspark-models">PySpark Models</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#pytorch-models">PyTorch Models</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#tensorflow-models">Tensorflow Models</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#mxnet-models">MXNet Models</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#pytorch-onnx-caffe2-models">PyTorch-&gt;ONNX-&gt;Caffe2 Models</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#create-your-own-container">Create Your Own Container</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="exceptions.html">Exceptions</a></li>
+</ul>
+<p class="caption"><span class="caption-text">R Clipper Documentation</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="rclipper.html">RClipper</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">Clipper</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="index.html">Docs</a> &raquo;</li>
+        
+      <li>Model Deployers</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="_sources/model_deployers.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="model-deployers">
+<h1>Model Deployers<a class="headerlink" href="#model-deployers" title="Permalink to this headline">¶</a></h1>
+<p>Clipper provides a collection of model deployer modules to simplify the process of deploying
+a trained model to Clipper and avoid the need to figure out how to save models and
+build custom Docker containers capable of serving the saved models for some common use
+cases. With these modules, you can deploy models directly from Python to Clipper.</p>
+<p>Currently, Clipper provides the following deployer modules:
+1. Arbitrary Python functions (with some limitations)
+2. PySpark Models (along with pre- and post-processing logic)
+3. PyTorch Models
+4. Tensorflow Models
+5. MXNet Models
+6. PyTorch Models exported as ONNX file with Caffe2 Serving Backend (Experimental)</p>
+<p>Method 1 supports function that can only be pickled using
+<a class="reference external" href="https://github.com/cloudpipe/cloudpickle">Cloudpickle</a> and/or
+pure python library that can be installed  via <cite>pip</cite>. For reference,
+please use the following flowchart to make decision about which deployer
+to use.</p>
+<img src="_images/graphviz-07cab7d1e50b82bdcfbc9996de8ab4920e65fbc1.png" alt="digraph foo {
+   &quot;Pure Python?&quot; -&gt; &quot;Use python deployer &amp; State pkg_to_install&quot; [ label=&quot;Yes&quot; ];
+   &quot;Pure Python?&quot; -&gt; &quot;Does Clipper Provide Container?&quot; [ label=&quot;No&quot; ];
+   &quot;Does Clipper Provide Container?&quot; -&gt; &quot;Use {pytorch | tensorflow | pyspark | ...} deployers&quot; [ label=&quot;Yes&quot; ];
+   &quot;Does Clipper Provide Container?&quot; -&gt; &quot;Build Your Own Container&quot; [ label=&quot;No&quot; ];
+}" />
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">You can find additional examples of using both model deployers in
+<a class="reference external" href="https://github.com/ucbrise/clipper/tree/develop/integration-tests">Clipper’s integration tests</a>.</p>
+</div>
+<div class="section" id="pure-python-functions">
+<h2>Pure Python functions<a class="headerlink" href="#pure-python-functions" title="Permalink to this headline">¶</a></h2>
+<p>This module supports deploying pure Python function closures to Clipper. A function deployed with
+this module must take a list of inputs as the sole argument, and return a list of strings of
+exactly the same length. The reason the prediction function takes a list of inputs rather than
+a single input is to provide models the possibility of computing multiple predictions in parallel
+to improve model performance. For example, many models that run on a GPU can significantly improve
+throughput by batching predictions to better utilize the many parallel cores of the GPU.</p>
+<p>In addition, the function must only use pure Python code. More specifically, all of the state
+captured by the function will be pickled using <a class="reference external" href="https://github.com/cloudpipe/cloudpickle">Cloudpickle</a>,
+so any state captured by the function must be able to be pickled. Most Python libraries that
+use C extensions create objects that cannot be pickled. This includes many common machine-learning
+frameworks such as PySpark, TensorFlow, PyTorch, and Caffe. You will have to use Clipper provided containers or create your own Docker containers and call the native serialization libraries of these frameworks in order to deploy them.</p>
+<p>This module will attempt to capture any additional Python modules your function uses.
+Additional modules that were installed with Anaconda or Pip will be installed in the same way in your deployed Docker container when the container is started.
+Additional local modules will be copied to the container along with the function.</p>
+<p>While Clipper will try to capture additional dependencies and install them, these dependencies will not be
+built into the Docker image but instead will be downloaded and installed each time a container is started.
+As a result, this can significantly increase container initialization time (sometimes taking several
+minutes to start up). To remedy this, you can pass-in <code class="docutils literal notranslate"><span class="pre">pkg_to_install</span></code> in the <code class="docutils literal notranslate"><span class="pre">deploy_python_closure</span></code> or <code class="docutils literal notranslate"><span class="pre">create_endpoint</span></code> call.</p>
+<div class="admonition warning">
+<p class="first admonition-title">Warning</p>
+<p class="last"><strong>Dependency-Capture Caveats:</strong>
+All of the dependency capture is performed on a best-effort basis and you may
+run into edge-cases that Clipper cannot support. Furthermore, the dependency-capture logic relies on
+being called from inside an Anaconda environment, so if you call this function from outside
+an Anaconda environment no dependency capture will be attempted.*</p>
+</div>
+<dl class="function">
+<dt id="clipper_admin.deployers.python.deploy_python_closure">
+<code class="descclassname">clipper_admin.deployers.python.</code><code class="descname">deploy_python_closure</code><span class="sig-paren">(</span><em>clipper_conn</em>, <em>name</em>, <em>version</em>, <em>input_type</em>, <em>func</em>, <em>base_image='default'</em>, <em>labels=None</em>, <em>registry=None</em>, <em>num_replicas=1</em>, <em>batch_size=-1</em>, <em>pkgs_to_install=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/clipper_admin/deployers/python.html#deploy_python_closure"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#clipper_admin.deployers.python.deploy_python_closure" title="Permalink to this definition">¶</a></dt>
+<dd><p>Deploy an arbitrary Python function to Clipper.</p>
+<p>The function should take a list of inputs of the type specified by <cite>input_type</cite> and
+return a Python list or numpy array of predictions as strings.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>clipper_conn</strong> (<a class="reference internal" href="clipper_connection.html#clipper_admin.ClipperConnection" title="clipper_admin.ClipperConnection"><code class="xref py py-meth docutils literal notranslate"><span class="pre">clipper_admin.ClipperConnection()</span></code></a>) – A <code class="docutils literal notranslate"><span class="pre">ClipperConnection</span></code> object connected to a running Clipper cluster.</li>
+<li><strong>name</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.6)"><em>str</em></a>) – The name to be assigned to both the registered application and deployed model.</li>
+<li><strong>version</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.6)"><em>str</em></a>) – The version to assign this model. Versions must be unique on a per-model
+basis, but may be re-used across different models.</li>
+<li><strong>input_type</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.6)"><em>str</em></a>) – The input_type to be associated with the registered app and deployed model.
+One of “integers”, “floats”, “doubles”, “bytes”, or “strings”.</li>
+<li><strong>func</strong> (<em>function</em>) – The prediction function. Any state associated with the function will be
+captured via closure capture and pickled with Cloudpickle.</li>
+<li><strong>base_image</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.6)"><em>str</em></a><em>, </em><em>optional</em>) – The base Docker image to build the new model image from. This
+image should contain all code necessary to run a Clipper model
+container RPC client.</li>
+<li><strong>labels</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.6)"><em>list</em></a><em>(</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.6)"><em>str</em></a><em>)</em><em>, </em><em>optional</em>) – A list of strings annotating the model. These are ignored by Clipper
+and used purely for user annotations.</li>
+<li><strong>registry</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.6)"><em>str</em></a><em>, </em><em>optional</em>) – The Docker container registry to push the freshly built model to. Note
+that if you are running Clipper on Kubernetes, this registry must be accesible
+to the Kubernetes cluster in order to fetch the container from the registry.</li>
+<li><strong>num_replicas</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.6)"><em>int</em></a><em>, </em><em>optional</em>) – The number of replicas of the model to create. The number of replicas
+for a model can be changed at any time with
+<code class="xref py py-meth docutils literal notranslate"><span class="pre">clipper.ClipperConnection.set_num_replicas()</span></code>.</li>
+<li><strong>batch_size</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.6)"><em>int</em></a><em>, </em><em>optional</em>) – The user-defined query batch size for the model. Replicas of the model will attempt
+to process at most <cite>batch_size</cite> queries simultaneously. They may process smaller
+batches if <cite>batch_size</cite> queries are not immediately available.
+If the default value of -1 is used, Clipper will adaptively calculate the batch size for
+individual replicas of this model.</li>
+<li><strong>pkgs_to_install</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.6)"><em>list</em></a><em> (</em><em>of strings</em><em>)</em><em>, </em><em>optional</em>) – A list of the names of packages to install, using pip, in the container.
+The names must be strings.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+<p class="rubric">Example</p>
+<p>Define a pre-processing function <code class="docutils literal notranslate"><span class="pre">center()</span></code> and train a model on the pre-processed input:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">clipper_admin</span> <span class="k">import</span> <span class="n">ClipperConnection</span><span class="p">,</span> <span class="n">DockerContainerManager</span>
+<span class="kn">from</span> <span class="nn">clipper_admin.deployers.python</span> <span class="k">import</span> <span class="n">deploy_python_closure</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">sklearn</span>
+
+<span class="n">clipper_conn</span> <span class="o">=</span> <span class="n">ClipperConnection</span><span class="p">(</span><span class="n">DockerContainerManager</span><span class="p">())</span>
+
+<span class="c1"># Connect to an already-running Clipper cluster</span>
+<span class="n">clipper_conn</span><span class="o">.</span><span class="n">connect</span><span class="p">()</span>
+
+<span class="k">def</span> <span class="nf">center</span><span class="p">(</span><span class="n">xs</span><span class="p">):</span>
+    <span class="n">means</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">xs</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">xs</span> <span class="o">-</span> <span class="n">means</span>
+
+<span class="n">centered_xs</span> <span class="o">=</span> <span class="n">center</span><span class="p">(</span><span class="n">xs</span><span class="p">)</span>
+<span class="n">model</span> <span class="o">=</span> <span class="n">sklearn</span><span class="o">.</span><span class="n">linear_model</span><span class="o">.</span><span class="n">LogisticRegression</span><span class="p">()</span>
+<span class="n">model</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">centered_xs</span><span class="p">,</span> <span class="n">ys</span><span class="p">)</span>
+
+<span class="c1"># Note that this function accesses the trained model via closure capture,</span>
+<span class="c1"># rather than having the model passed in as an explicit argument.</span>
+<span class="k">def</span> <span class="nf">centered_predict</span><span class="p">(</span><span class="n">inputs</span><span class="p">):</span>
+    <span class="n">centered_inputs</span> <span class="o">=</span> <span class="n">center</span><span class="p">(</span><span class="n">inputs</span><span class="p">)</span>
+    <span class="c1"># model.predict returns a list of predictions</span>
+    <span class="n">preds</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">centered_inputs</span><span class="p">)</span>
+    <span class="k">return</span> <span class="p">[</span><span class="nb">str</span><span class="p">(</span><span class="n">p</span><span class="p">)</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">preds</span><span class="p">]</span>
+
+<span class="n">deploy_python_closure</span><span class="p">(</span>
+    <span class="n">clipper_conn</span><span class="p">,</span>
+    <span class="n">name</span><span class="o">=</span><span class="s2">&quot;example&quot;</span><span class="p">,</span>
+    <span class="n">input_type</span><span class="o">=</span><span class="s2">&quot;doubles&quot;</span><span class="p">,</span>
+    <span class="n">func</span><span class="o">=</span><span class="n">centered_predict</span><span class="p">)</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="function">
+<dt id="clipper_admin.deployers.python.create_endpoint">
+<code class="descclassname">clipper_admin.deployers.python.</code><code class="descname">create_endpoint</code><span class="sig-paren">(</span><em>clipper_conn</em>, <em>name</em>, <em>input_type</em>, <em>func</em>, <em>default_output='None'</em>, <em>version=1</em>, <em>slo_micros=3000000</em>, <em>labels=None</em>, <em>registry=None</em>, <em>base_image='default'</em>, <em>num_replicas=1</em>, <em>batch_size=-1</em>, <em>pkgs_to_install=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/clipper_admin/deployers/python.html#create_endpoint"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#clipper_admin.deployers.python.create_endpoint" title="Permalink to this definition">¶</a></dt>
+<dd><p>Registers an application and deploys the provided predict function as a model.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>clipper_conn</strong> (<a class="reference internal" href="clipper_connection.html#clipper_admin.ClipperConnection" title="clipper_admin.ClipperConnection"><code class="xref py py-meth docutils literal notranslate"><span class="pre">clipper_admin.ClipperConnection()</span></code></a>) – A <code class="docutils literal notranslate"><span class="pre">ClipperConnection</span></code> object connected to a running Clipper cluster.</li>
+<li><strong>name</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.6)"><em>str</em></a>) – The name to be assigned to both the registered application and deployed model.</li>
+<li><strong>input_type</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.6)"><em>str</em></a>) – The input_type to be associated with the registered app and deployed model.
+One of “integers”, “floats”, “doubles”, “bytes”, or “strings”.</li>
+<li><strong>func</strong> (<em>function</em>) – The prediction function. Any state associated with the function will be
+captured via closure capture and pickled with Cloudpickle.</li>
+<li><strong>default_output</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.6)"><em>str</em></a><em>, </em><em>optional</em>) – The default output for the application. The default output will be returned whenever
+an application is unable to receive a response from a model within the specified
+query latency SLO (service level objective). The reason the default output was returned
+is always provided as part of the prediction response object. Defaults to “None”.</li>
+<li><strong>version</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.6)"><em>str</em></a><em>, </em><em>optional</em>) – The version to assign this model. Versions must be unique on a per-model
+basis, but may be re-used across different models.</li>
+<li><strong>slo_micros</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.6)"><em>int</em></a><em>, </em><em>optional</em>) – The query latency objective for the application in microseconds.
+This is the processing latency between Clipper receiving a request
+and sending a response. It does not account for network latencies
+before a request is received or after a response is sent.
+If Clipper cannot process a query within the latency objective,
+the default output is returned. Therefore, it is recommended that
+the SLO not be set aggressively low unless absolutely necessary.
+100000 (100ms) is a good starting value, but the optimal latency objective
+will vary depending on the application.</li>
+<li><strong>labels</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.6)"><em>list</em></a><em>(</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.6)"><em>str</em></a><em>)</em><em>, </em><em>optional</em>) – A list of strings annotating the model. These are ignored by Clipper
+and used purely for user annotations.</li>
+<li><strong>registry</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.6)"><em>str</em></a><em>, </em><em>optional</em>) – The Docker container registry to push the freshly built model to. Note
+that if you are running Clipper on Kubernetes, this registry must be accessible
+to the Kubernetes cluster in order to fetch the container from the registry.</li>
+<li><strong>base_image</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.6)"><em>str</em></a><em>, </em><em>optional</em>) – The base Docker image to build the new model image from. This
+image should contain all code necessary to run a Clipper model
+container RPC client.</li>
+<li><strong>num_replicas</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.6)"><em>int</em></a><em>, </em><em>optional</em>) – The number of replicas of the model to create. The number of replicas
+for a model can be changed at any time with
+<code class="xref py py-meth docutils literal notranslate"><span class="pre">clipper.ClipperConnection.set_num_replicas()</span></code>.</li>
+<li><strong>batch_size</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.6)"><em>int</em></a><em>, </em><em>optional</em>) – The user-defined query batch size for the model. Replicas of the model will attempt
+to process at most <cite>batch_size</cite> queries simultaneously. They may process smaller
+batches if <cite>batch_size</cite> queries are not immediately available.
+If the default value of -1 is used, Clipper will adaptively calculate the batch size for
+individual replicas of this model.</li>
+<li><strong>pkgs_to_install</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.6)"><em>list</em></a><em> (</em><em>of strings</em><em>)</em><em>, </em><em>optional</em>) – A list of the names of packages to install, using pip, in the container.
+The names must be strings.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</div>
+<div class="section" id="pyspark-models">
+<h2>PySpark Models<a class="headerlink" href="#pyspark-models" title="Permalink to this headline">¶</a></h2>
+<p>The PySpark model deployer module provides a small extension to the Python closure deployer to allow
+you to deploy Python functions that include PySpark models as part of the state. PySpark models
+cannot be pickled and so they break the Python closure deployer. Instead, they must be saved using
+the native PySpark save and load APIs. To get around this limitation, the PySpark model deployer
+introduces two changes to the Python closure deployer discussed above.</p>
+<p>First, a function deployed with this module <em>takes two additional arguments</em>: a PySpark <code class="docutils literal notranslate"><span class="pre">SparkSession</span></code> object
+and a PySpark model object, along with a list of inputs as provided to the Python closures in the
+<code class="docutils literal notranslate"><span class="pre">deployers.python</span></code> module. It must still return a list of strings of the same length as the list
+of inputs.</p>
+<p>Second, the <code class="docutils literal notranslate"><span class="pre">pyspark.deploy_pyspark_model</span></code> and <code class="docutils literal notranslate"><span class="pre">pyspark.create_endpoint</span></code> deployment methods
+introduce two additional arguments:</p>
+<ul class="simple">
+<li><code class="docutils literal notranslate"><span class="pre">pyspark_model</span></code>: A PySpark model object. This model will be serialized using the native PySpark
+serialization API and loaded into the deployed model container. The model container creates a
+long-lived SparkSession when it is first initialized and uses that to load this model once at initialization
+time. The long-lived SparkSession and loaded model are provided by the container as arguments to the prediction
+function each time the model container receives a new prediction request.</li>
+<li><code class="docutils literal notranslate"><span class="pre">sc</span></code>: The current SparkContext. The PySpark model serialization API requires the SparkContext as an argument</li>
+</ul>
+<p>The effect of these two changes is to allow the deployed prediction function to capture all pure Python
+state through closure capture but explicitly declare the additional PySpark state which must be saved and
+loaded through a separate process.</p>
+<p>All caveats about dependency-capture still hold.</p>
+<dl class="function">
+<dt id="clipper_admin.deployers.pyspark.deploy_pyspark_model">
+<code class="descclassname">clipper_admin.deployers.pyspark.</code><code class="descname">deploy_pyspark_model</code><span class="sig-paren">(</span><em>clipper_conn</em>, <em>name</em>, <em>version</em>, <em>input_type</em>, <em>func</em>, <em>pyspark_model</em>, <em>sc</em>, <em>base_image='clipper/pyspark-container:develop'</em>, <em>labels=None</em>, <em>registry=None</em>, <em>num_replicas=1</em>, <em>batch_size=-1</em>, <em>pkgs_to_install=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/clipper_admin/deployers/pyspark.html#deploy_pyspark_model"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#clipper_admin.deployers.pyspark.deploy_pyspark_model" title="Permalink to this definition">¶</a></dt>
+<dd><p>Deploy a Python function with a PySpark model.</p>
+<p>The function must take 3 arguments (in order): a SparkSession, the PySpark model, and a list of
+inputs. It must return a list of strings of the same length as the list of inputs.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>clipper_conn</strong> (<a class="reference internal" href="clipper_connection.html#clipper_admin.ClipperConnection" title="clipper_admin.ClipperConnection"><code class="xref py py-meth docutils literal notranslate"><span class="pre">clipper_admin.ClipperConnection()</span></code></a>) – A <code class="docutils literal notranslate"><span class="pre">ClipperConnection</span></code> object connected to a running Clipper cluster.</li>
+<li><strong>name</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.6)"><em>str</em></a>) – The name to be assigned to both the registered application and deployed model.</li>
+<li><strong>version</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.6)"><em>str</em></a>) – The version to assign this model. Versions must be unique on a per-model
+basis, but may be re-used across different models.</li>
+<li><strong>input_type</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.6)"><em>str</em></a>) – The input_type to be associated with the registered app and deployed model.
+One of “integers”, “floats”, “doubles”, “bytes”, or “strings”.</li>
+<li><strong>func</strong> (<em>function</em>) – The prediction function. Any state associated with the function will be
+captured via closure capture and pickled with Cloudpickle.</li>
+<li><strong>pyspark_model</strong> (<em>pyspark.mllib.*</em><em> or </em><em>pyspark.ml.pipeline.PipelineModel object</em>) – The PySpark model to save.</li>
+<li><strong>sc</strong> (<em>SparkContext</em><em>,</em>) – The current SparkContext. This is needed to save the PySpark model.</li>
+<li><strong>base_image</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.6)"><em>str</em></a><em>, </em><em>optional</em>) – The base Docker image to build the new model image from. This
+image should contain all code necessary to run a Clipper model
+container RPC client.</li>
+<li><strong>labels</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.6)"><em>list</em></a><em>(</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.6)"><em>str</em></a><em>)</em><em>, </em><em>optional</em>) – A list of strings annotating the model. These are ignored by Clipper
+and used purely for user annotations.</li>
+<li><strong>registry</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.6)"><em>str</em></a><em>, </em><em>optional</em>) – The Docker container registry to push the freshly built model to. Note
+that if you are running Clipper on Kubernetes, this registry must be accesible
+to the Kubernetes cluster in order to fetch the container from the registry.</li>
+<li><strong>num_replicas</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.6)"><em>int</em></a><em>, </em><em>optional</em>) – The number of replicas of the model to create. The number of replicas
+for a model can be changed at any time with
+<code class="xref py py-meth docutils literal notranslate"><span class="pre">clipper.ClipperConnection.set_num_replicas()</span></code>.</li>
+<li><strong>batch_size</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.6)"><em>int</em></a><em>, </em><em>optional</em>) – The user-defined query batch size for the model. Replicas of the model will attempt
+to process at most <cite>batch_size</cite> queries simultaneously. They may process smaller
+batches if <cite>batch_size</cite> queries are not immediately available.
+If the default value of -1 is used, Clipper will adaptively calculate the batch size for individual
+replicas of this model.</li>
+<li><strong>pkgs_to_install</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.6)"><em>list</em></a><em> (</em><em>of strings</em><em>)</em><em>, </em><em>optional</em>) – A list of the names of packages to install, using pip, in the container.
+The names must be strings.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+<p class="rubric">Example</p>
+<p>Define a pre-processing function <code class="docutils literal notranslate"><span class="pre">shift()</span></code> and to normalize prediction inputs:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">clipper_admin</span> <span class="k">import</span> <span class="n">ClipperConnection</span><span class="p">,</span> <span class="n">DockerContainerManager</span>
+<span class="kn">from</span> <span class="nn">clipper_admin.deployers.pyspark</span> <span class="k">import</span> <span class="n">deploy_pyspark_model</span>
+<span class="kn">from</span> <span class="nn">pyspark.mllib.classification</span> <span class="k">import</span> <span class="n">LogisticRegressionWithSGD</span>
+<span class="kn">from</span> <span class="nn">pyspark.sql</span> <span class="k">import</span> <span class="n">SparkSession</span>
+
+<span class="n">spark</span> <span class="o">=</span> <span class="n">SparkSession</span>                <span class="o">.</span><span class="n">builder</span>                <span class="o">.</span><span class="n">appName</span><span class="p">(</span><span class="s2">&quot;clipper-pyspark&quot;</span><span class="p">)</span>                <span class="o">.</span><span class="n">getOrCreate</span><span class="p">()</span>
+
+<span class="n">sc</span> <span class="o">=</span> <span class="n">spark</span><span class="o">.</span><span class="n">sparkContext</span>
+
+<span class="n">clipper_conn</span> <span class="o">=</span> <span class="n">ClipperConnection</span><span class="p">(</span><span class="n">DockerContainerManager</span><span class="p">())</span>
+
+<span class="c1"># Connect to an already-running Clipper cluster</span>
+<span class="n">clipper_conn</span><span class="o">.</span><span class="n">connect</span><span class="p">()</span>
+
+<span class="c1"># Loading a training dataset omitted...</span>
+<span class="n">model</span> <span class="o">=</span> <span class="n">LogisticRegressionWithSGD</span><span class="o">.</span><span class="n">train</span><span class="p">(</span><span class="n">trainRDD</span><span class="p">,</span> <span class="n">iterations</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>
+
+<span class="c1"># Note that this function accesses the trained PySpark model via an explicit</span>
+<span class="c1"># argument, but other state can be captured via closure capture if necessary.</span>
+<span class="k">def</span> <span class="nf">predict</span><span class="p">(</span><span class="n">spark</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="n">inputs</span><span class="p">):</span>
+    <span class="k">return</span> <span class="p">[</span><span class="nb">str</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">shift</span><span class="p">(</span><span class="n">x</span><span class="p">)))</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">inputs</span><span class="p">]</span>
+
+<span class="n">deploy_pyspark_model</span><span class="p">(</span>
+    <span class="n">clipper_conn</span><span class="p">,</span>
+    <span class="n">name</span><span class="o">=</span><span class="s2">&quot;example&quot;</span><span class="p">,</span>
+    <span class="n">input_type</span><span class="o">=</span><span class="s2">&quot;doubles&quot;</span><span class="p">,</span>
+    <span class="n">func</span><span class="o">=</span><span class="n">predict</span><span class="p">,</span>
+    <span class="n">pyspark_model</span><span class="o">=</span><span class="n">model</span><span class="p">,</span>
+    <span class="n">sc</span><span class="o">=</span><span class="n">sc</span><span class="p">)</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="function">
+<dt id="clipper_admin.deployers.pyspark.create_endpoint">
+<code class="descclassname">clipper_admin.deployers.pyspark.</code><code class="descname">create_endpoint</code><span class="sig-paren">(</span><em>clipper_conn</em>, <em>name</em>, <em>input_type</em>, <em>func</em>, <em>pyspark_model</em>, <em>sc</em>, <em>default_output='None'</em>, <em>version=1</em>, <em>slo_micros=3000000</em>, <em>labels=None</em>, <em>registry=None</em>, <em>base_image='clipper/pyspark-container:develop'</em>, <em>num_replicas=1</em>, <em>batch_size=-1</em>, <em>pkgs_to_install=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/clipper_admin/deployers/pyspark.html#create_endpoint"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#clipper_admin.deployers.pyspark.create_endpoint" title="Permalink to this definition">¶</a></dt>
+<dd><p>Registers an app and deploys the provided predict function with PySpark model as
+a Clipper model.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>clipper_conn</strong> (<a class="reference internal" href="clipper_connection.html#clipper_admin.ClipperConnection" title="clipper_admin.ClipperConnection"><code class="xref py py-meth docutils literal notranslate"><span class="pre">clipper_admin.ClipperConnection()</span></code></a>) – A <code class="docutils literal notranslate"><span class="pre">ClipperConnection</span></code> object connected to a running Clipper cluster.</li>
+<li><strong>name</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.6)"><em>str</em></a>) – The name to be assigned to both the registered application and deployed model.</li>
+<li><strong>input_type</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.6)"><em>str</em></a>) – The input_type to be associated with the registered app and deployed model.
+One of “integers”, “floats”, “doubles”, “bytes”, or “strings”.</li>
+<li><strong>func</strong> (<em>function</em>) – The prediction function. Any state associated with the function will be
+captured via closure capture and pickled with Cloudpickle.</li>
+<li><strong>pyspark_model</strong> (<em>pyspark.mllib.*</em><em> or </em><em>pyspark.ml.pipeline.PipelineModel object</em>) – The PySpark model to save.</li>
+<li><strong>sc</strong> (<em>SparkContext</em><em>,</em>) – The current SparkContext. This is needed to save the PySpark model.</li>
+<li><strong>default_output</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.6)"><em>str</em></a><em>, </em><em>optional</em>) – The default output for the application. The default output will be returned whenever
+an application is unable to receive a response from a model within the specified
+query latency SLO (service level objective). The reason the default output was returned
+is always provided as part of the prediction response object. Defaults to “None”.</li>
+<li><strong>version</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.6)"><em>str</em></a><em>, </em><em>optional</em>) – The version to assign this model. Versions must be unique on a per-model
+basis, but may be re-used across different models.</li>
+<li><strong>slo_micros</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.6)"><em>int</em></a><em>, </em><em>optional</em>) – The query latency objective for the application in microseconds.
+This is the processing latency between Clipper receiving a request
+and sending a response. It does not account for network latencies
+before a request is received or after a response is sent.
+If Clipper cannot process a query within the latency objective,
+the default output is returned. Therefore, it is recommended that
+the SLO not be set aggressively low unless absolutely necessary.
+100000 (100ms) is a good starting value, but the optimal latency objective
+will vary depending on the application.</li>
+<li><strong>labels</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.6)"><em>list</em></a><em>(</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.6)"><em>str</em></a><em>)</em><em>, </em><em>optional</em>) – A list of strings annotating the model. These are ignored by Clipper
+and used purely for user annotations.</li>
+<li><strong>registry</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.6)"><em>str</em></a><em>, </em><em>optional</em>) – The Docker container registry to push the freshly built model to. Note
+that if you are running Clipper on Kubernetes, this registry must be accesible
+to the Kubernetes cluster in order to fetch the container from the registry.</li>
+<li><strong>base_image</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.6)"><em>str</em></a><em>, </em><em>optional</em>) – The base Docker image to build the new model image from. This
+image should contain all code necessary to run a Clipper model
+container RPC client.</li>
+<li><strong>num_replicas</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.6)"><em>int</em></a><em>, </em><em>optional</em>) – The number of replicas of the model to create. The number of replicas
+for a model can be changed at any time with
+<code class="xref py py-meth docutils literal notranslate"><span class="pre">clipper.ClipperConnection.set_num_replicas()</span></code>.</li>
+<li><strong>batch_size</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.6)"><em>int</em></a><em>, </em><em>optional</em>) – The user-defined query batch size for the model. Replicas of the model will attempt
+to process at most <cite>batch_size</cite> queries simultaneously. They may process smaller
+batches if <cite>batch_size</cite> queries are not immediately available.
+If the default value of -1 is used, Clipper will adaptively calculate the batch size for individual
+replicas of this model.</li>
+<li><strong>pkgs_to_install</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.6)"><em>list</em></a><em> (</em><em>of strings</em><em>)</em><em>, </em><em>optional</em>) – A list of the names of packages to install, using pip, in the container.
+The names must be strings.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</div>
+<div class="section" id="pytorch-models">
+<h2>PyTorch Models<a class="headerlink" href="#pytorch-models" title="Permalink to this headline">¶</a></h2>
+<p>For PyTorch, Clipper will serialize the model using <code class="docutils literal notranslate"><span class="pre">torch.save</span></code> and it will be loaded using <code class="docutils literal notranslate"><span class="pre">torch.load</span></code>. It is expected the model has a forward method and can be called using <code class="docutils literal notranslate"><span class="pre">model(input)</span></code> to predict output.</p>
+<dl class="function">
+<dt id="clipper_admin.deployers.pytorch.deploy_pytorch_model">
+<code class="descclassname">clipper_admin.deployers.pytorch.</code><code class="descname">deploy_pytorch_model</code><span class="sig-paren">(</span><em>clipper_conn</em>, <em>name</em>, <em>version</em>, <em>input_type</em>, <em>func</em>, <em>pytorch_model</em>, <em>base_image='clipper/pytorch-container:develop'</em>, <em>labels=None</em>, <em>registry=None</em>, <em>num_replicas=1</em>, <em>batch_size=-1</em>, <em>pkgs_to_install=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/clipper_admin/deployers/pytorch.html#deploy_pytorch_model"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#clipper_admin.deployers.pytorch.deploy_pytorch_model" title="Permalink to this definition">¶</a></dt>
+<dd><p>Deploy a Python function with a PyTorch model.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>clipper_conn</strong> (<a class="reference internal" href="clipper_connection.html#clipper_admin.ClipperConnection" title="clipper_admin.ClipperConnection"><code class="xref py py-meth docutils literal notranslate"><span class="pre">clipper_admin.ClipperConnection()</span></code></a>) – A <code class="docutils literal notranslate"><span class="pre">ClipperConnection</span></code> object connected to a running Clipper cluster.</li>
+<li><strong>name</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.6)"><em>str</em></a>) – The name to be assigned to both the registered application and deployed model.</li>
+<li><strong>version</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.6)"><em>str</em></a>) – The version to assign this model. Versions must be unique on a per-model
+basis, but may be re-used across different models.</li>
+<li><strong>input_type</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.6)"><em>str</em></a>) – The input_type to be associated with the registered app and deployed model.
+One of “integers”, “floats”, “doubles”, “bytes”, or “strings”.</li>
+<li><strong>func</strong> (<em>function</em>) – The prediction function. Any state associated with the function will be
+captured via closure capture and pickled with Cloudpickle.</li>
+<li><strong>pytorch_model</strong> (<em>pytorch model object</em>) – The Pytorch model to save.</li>
+<li><strong>base_image</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.6)"><em>str</em></a><em>, </em><em>optional</em>) – The base Docker image to build the new model image from. This
+image should contain all code necessary to run a Clipper model
+container RPC client.</li>
+<li><strong>labels</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.6)"><em>list</em></a><em>(</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.6)"><em>str</em></a><em>)</em><em>, </em><em>optional</em>) – A list of strings annotating the model. These are ignored by Clipper
+and used purely for user annotations.</li>
+<li><strong>registry</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.6)"><em>str</em></a><em>, </em><em>optional</em>) – The Docker container registry to push the freshly built model to. Note
+that if you are running Clipper on Kubernetes, this registry must be accesible
+to the Kubernetes cluster in order to fetch the container from the registry.</li>
+<li><strong>num_replicas</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.6)"><em>int</em></a><em>, </em><em>optional</em>) – The number of replicas of the model to create. The number of replicas
+for a model can be changed at any time with
+<code class="xref py py-meth docutils literal notranslate"><span class="pre">clipper.ClipperConnection.set_num_replicas()</span></code>.</li>
+<li><strong>batch_size</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.6)"><em>int</em></a><em>, </em><em>optional</em>) – The user-defined query batch size for the model. Replicas of the model will attempt
+to process at most <cite>batch_size</cite> queries simultaneously. They may process smaller
+batches if <cite>batch_size</cite> queries are not immediately available.
+If the default value of -1 is used, Clipper will adaptively calculate the batch size for individual
+replicas of this model.</li>
+<li><strong>pkgs_to_install</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.6)"><em>list</em></a><em> (</em><em>of strings</em><em>)</em><em>, </em><em>optional</em>) – A list of the names of packages to install, using pip, in the container.
+The names must be strings.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+<p class="rubric">Example</p>
+<p>Define a pytorch nn module and save the model:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">clipper_admin</span> <span class="k">import</span> <span class="n">ClipperConnection</span><span class="p">,</span> <span class="n">DockerContainerManager</span>
+<span class="kn">from</span> <span class="nn">clipper_admin.deployers.pytorch</span> <span class="k">import</span> <span class="n">deploy_pytorch_model</span>
+<span class="kn">from</span> <span class="nn">torch</span> <span class="k">import</span> <span class="n">nn</span>
+
+<span class="n">clipper_conn</span> <span class="o">=</span> <span class="n">ClipperConnection</span><span class="p">(</span><span class="n">DockerContainerManager</span><span class="p">())</span>
+
+<span class="c1"># Connect to an already-running Clipper cluster</span>
+<span class="n">clipper_conn</span><span class="o">.</span><span class="n">connect</span><span class="p">()</span>
+
+<span class="n">model</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+
+<span class="c1">#define a shift function to normalize prediction inputs</span>
+<span class="k">def</span> <span class="nf">predict</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">inputs</span><span class="p">):</span>
+    <span class="n">pred</span> <span class="o">=</span> <span class="n">model</span><span class="p">(</span><span class="n">shift</span><span class="p">(</span><span class="n">inputs</span><span class="p">))</span>
+    <span class="n">pred</span> <span class="o">=</span> <span class="n">pred</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
+    <span class="k">return</span> <span class="p">[</span><span class="nb">str</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">pred</span><span class="p">]</span>
+
+
+<span class="n">deploy_pytorch_model</span><span class="p">(</span>
+    <span class="n">clipper_conn</span><span class="p">,</span>
+    <span class="n">name</span><span class="o">=</span><span class="s2">&quot;example&quot;</span><span class="p">,</span>
+    <span class="n">version</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+    <span class="n">input_type</span><span class="o">=</span><span class="s2">&quot;doubles&quot;</span><span class="p">,</span>
+    <span class="n">func</span><span class="o">=</span><span class="n">predict</span><span class="p">,</span>
+    <span class="n">pytorch_model</span><span class="o">=</span><span class="n">model</span><span class="p">)</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="function">
+<dt id="clipper_admin.deployers.pytorch.create_endpoint">
+<code class="descclassname">clipper_admin.deployers.pytorch.</code><code class="descname">create_endpoint</code><span class="sig-paren">(</span><em>clipper_conn</em>, <em>name</em>, <em>input_type</em>, <em>func</em>, <em>pytorch_model</em>, <em>default_output='None'</em>, <em>version=1</em>, <em>slo_micros=3000000</em>, <em>labels=None</em>, <em>registry=None</em>, <em>base_image='clipper/pytorch-container:develop'</em>, <em>num_replicas=1</em>, <em>batch_size=-1</em>, <em>pkgs_to_install=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/clipper_admin/deployers/pytorch.html#create_endpoint"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#clipper_admin.deployers.pytorch.create_endpoint" title="Permalink to this definition">¶</a></dt>
+<dd><p>Registers an app and deploys the provided predict function with PyTorch model as
+a Clipper model.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>clipper_conn</strong> (<a class="reference internal" href="clipper_connection.html#clipper_admin.ClipperConnection" title="clipper_admin.ClipperConnection"><code class="xref py py-meth docutils literal notranslate"><span class="pre">clipper_admin.ClipperConnection()</span></code></a>) – A <code class="docutils literal notranslate"><span class="pre">ClipperConnection</span></code> object connected to a running Clipper cluster.</li>
+<li><strong>name</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.6)"><em>str</em></a>) – The name to be assigned to both the registered application and deployed model.</li>
+<li><strong>input_type</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.6)"><em>str</em></a>) – The input_type to be associated with the registered app and deployed model.
+One of “integers”, “floats”, “doubles”, “bytes”, or “strings”.</li>
+<li><strong>func</strong> (<em>function</em>) – The prediction function. Any state associated with the function will be
+captured via closure capture and pickled with Cloudpickle.</li>
+<li><strong>pytorch_model</strong> (<em>pytorch model object</em>) – The PyTorch model to save.</li>
+<li><strong>default_output</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.6)"><em>str</em></a><em>, </em><em>optional</em>) – The default output for the application. The default output will be returned whenever
+an application is unable to receive a response from a model within the specified
+query latency SLO (service level objective). The reason the default output was returned
+is always provided as part of the prediction response object. Defaults to “None”.</li>
+<li><strong>version</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.6)"><em>str</em></a><em>, </em><em>optional</em>) – The version to assign this model. Versions must be unique on a per-model
+basis, but may be re-used across different models.</li>
+<li><strong>slo_micros</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.6)"><em>int</em></a><em>, </em><em>optional</em>) – The query latency objective for the application in microseconds.
+This is the processing latency between Clipper receiving a request
+and sending a response. It does not account for network latencies
+before a request is received or after a response is sent.
+If Clipper cannot process a query within the latency objective,
+the default output is returned. Therefore, it is recommended that
+the SLO not be set aggressively low unless absolutely necessary.
+100000 (100ms) is a good starting value, but the optimal latency objective
+will vary depending on the application.</li>
+<li><strong>labels</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.6)"><em>list</em></a><em>(</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.6)"><em>str</em></a><em>)</em><em>, </em><em>optional</em>) – A list of strings annotating the model. These are ignored by Clipper
+and used purely for user annotations.</li>
+<li><strong>registry</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.6)"><em>str</em></a><em>, </em><em>optional</em>) – The Docker container registry to push the freshly built model to. Note
+that if you are running Clipper on Kubernetes, this registry must be accesible
+to the Kubernetes cluster in order to fetch the container from the registry.</li>
+<li><strong>base_image</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.6)"><em>str</em></a><em>, </em><em>optional</em>) – The base Docker image to build the new model image from. This
+image should contain all code necessary to run a Clipper model
+container RPC client.</li>
+<li><strong>num_replicas</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.6)"><em>int</em></a><em>, </em><em>optional</em>) – The number of replicas of the model to create. The number of replicas
+for a model can be changed at any time with
+<code class="xref py py-meth docutils literal notranslate"><span class="pre">clipper.ClipperConnection.set_num_replicas()</span></code>.</li>
+<li><strong>batch_size</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.6)"><em>int</em></a><em>, </em><em>optional</em>) – The user-defined query batch size for the model. Replicas of the model will attempt
+to process at most <cite>batch_size</cite> queries simultaneously. They may process smaller
+batches if <cite>batch_size</cite> queries are not immediately available.
+If the default value of -1 is used, Clipper will adaptively calculate the batch size for individual
+replicas of this model.</li>
+<li><strong>pkgs_to_install</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.6)"><em>list</em></a><em> (</em><em>of strings</em><em>)</em><em>, </em><em>optional</em>) – A list of the names of packages to install, using pip, in the container.
+The names must be strings.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</div>
+<div class="section" id="tensorflow-models">
+<h2>Tensorflow Models<a class="headerlink" href="#tensorflow-models" title="Permalink to this headline">¶</a></h2>
+<p>For Tensorflow, Clipper will serialize the Tensorflow Session.</p>
+<dl class="function">
+<dt id="clipper_admin.deployers.tensorflow.deploy_tensorflow_model">
+<code class="descclassname">clipper_admin.deployers.tensorflow.</code><code class="descname">deploy_tensorflow_model</code><span class="sig-paren">(</span><em>clipper_conn</em>, <em>name</em>, <em>version</em>, <em>input_type</em>, <em>func</em>, <em>tf_sess_or_saved_model_path</em>, <em>base_image='clipper/tf-container:develop'</em>, <em>labels=None</em>, <em>registry=None</em>, <em>num_replicas=1</em>, <em>batch_size=-1</em>, <em>pkgs_to_install=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/clipper_admin/deployers/tensorflow.html#deploy_tensorflow_model"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#clipper_admin.deployers.tensorflow.deploy_tensorflow_model" title="Permalink to this definition">¶</a></dt>
+<dd><p>Deploy a Python prediction function with a Tensorflow session or saved Tensorflow model.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>clipper_conn</strong> (<a class="reference internal" href="clipper_connection.html#clipper_admin.ClipperConnection" title="clipper_admin.ClipperConnection"><code class="xref py py-meth docutils literal notranslate"><span class="pre">clipper_admin.ClipperConnection()</span></code></a>) – A <code class="docutils literal notranslate"><span class="pre">ClipperConnection</span></code> object connected to a running Clipper cluster.</li>
+<li><strong>name</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.6)"><em>str</em></a>) – The name to be assigned to both the registered application and deployed model.</li>
+<li><strong>version</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.6)"><em>str</em></a>) – The version to assign this model. Versions must be unique on a per-model
+basis, but may be re-used across different models.</li>
+<li><strong>input_type</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.6)"><em>str</em></a>) – The input_type to be associated with the registered app and deployed model.
+One of “integers”, “floats”, “doubles”, “bytes”, or “strings”.</li>
+<li><strong>func</strong> (<em>function</em>) – The prediction function. Any state associated with the function will be
+captured via closure capture and pickled with Cloudpickle.</li>
+<li><strong>tf_sess</strong> (<em>tensorflow.python.client.session.Session</em>) – The tensor flow session to save or path to an existing saved model.</li>
+<li><strong>base_image</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.6)"><em>str</em></a><em>, </em><em>optional</em>) – The base Docker image to build the new model image from. This
+image should contain all code necessary to run a Clipper model
+container RPC client.</li>
+<li><strong>labels</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.6)"><em>list</em></a><em>(</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.6)"><em>str</em></a><em>)</em><em>, </em><em>optional</em>) – A list of strings annotating the model. These are ignored by Clipper
+and used purely for user annotations.</li>
+<li><strong>registry</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.6)"><em>str</em></a><em>, </em><em>optional</em>) – The Docker container registry to push the freshly built model to. Note
+that if you are running Clipper on Kubernetes, this registry must be accesible
+to the Kubernetes cluster in order to fetch the container from the registry.</li>
+<li><strong>num_replicas</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.6)"><em>int</em></a><em>, </em><em>optional</em>) – The number of replicas of the model to create. The number of replicas
+for a model can be changed at any time with
+<code class="xref py py-meth docutils literal notranslate"><span class="pre">clipper.ClipperConnection.set_num_replicas()</span></code>.</li>
+<li><strong>batch_size</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.6)"><em>int</em></a><em>, </em><em>optional</em>) – The user-defined query batch size for the model. Replicas of the model will attempt
+to process at most <cite>batch_size</cite> queries simultaneously. They may process smaller
+batches if <cite>batch_size</cite> queries are not immediately available.
+If the default value of -1 is used, Clipper will adaptively calculate the batch size for
+individual replicas of this model.</li>
+<li><strong>pkgs_to_install</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.6)"><em>list</em></a><em> (</em><em>of strings</em><em>)</em><em>, </em><em>optional</em>) – A list of the names of packages to install, using pip, in the container.
+The names must be strings.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+<p class="rubric">Example</p>
+<p>Save and deploy a tensorflow session:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">clipper_admin</span> <span class="k">import</span> <span class="n">ClipperConnection</span><span class="p">,</span> <span class="n">DockerContainerManager</span>
+<span class="kn">from</span> <span class="nn">clipper_admin.deployers.tensorflow</span> <span class="k">import</span> <span class="n">deploy_tensorflow_model</span>
+
+<span class="n">clipper_conn</span> <span class="o">=</span> <span class="n">ClipperConnection</span><span class="p">(</span><span class="n">DockerContainerManager</span><span class="p">())</span>
+
+<span class="c1"># Connect to an already-running Clipper cluster</span>
+<span class="n">clipper_conn</span><span class="o">.</span><span class="n">connect</span><span class="p">()</span>
+
+<span class="k">def</span> <span class="nf">predict</span><span class="p">(</span><span class="n">sess</span><span class="p">,</span> <span class="n">inputs</span><span class="p">):</span>
+    <span class="n">preds</span> <span class="o">=</span> <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="s1">&#39;predict_class:0&#39;</span><span class="p">,</span> <span class="n">feed_dict</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;pixels:0&#39;</span><span class="p">:</span> <span class="n">inputs</span><span class="p">})</span>
+    <span class="k">return</span> <span class="p">[</span><span class="nb">str</span><span class="p">(</span><span class="n">p</span><span class="p">)</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">preds</span><span class="p">]</span>
+
+<span class="n">deploy_tensorflow_model</span><span class="p">(</span>
+    <span class="n">clipper_conn</span><span class="p">,</span>
+    <span class="n">model_name</span><span class="p">,</span>
+    <span class="n">version</span><span class="p">,</span>
+    <span class="n">input_type</span><span class="p">,</span>
+    <span class="n">predict_fn</span><span class="p">,</span>
+    <span class="n">sess</span><span class="p">)</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="function">
+<dt id="clipper_admin.deployers.tensorflow.create_endpoint">
+<code class="descclassname">clipper_admin.deployers.tensorflow.</code><code class="descname">create_endpoint</code><span class="sig-paren">(</span><em>clipper_conn</em>, <em>name</em>, <em>input_type</em>, <em>func</em>, <em>tf_sess_or_saved_model_path</em>, <em>default_output='None'</em>, <em>version=1</em>, <em>slo_micros=3000000</em>, <em>labels=None</em>, <em>registry=None</em>, <em>base_image='clipper/tf-container:develop'</em>, <em>num_replicas=1</em>, <em>batch_size=-1</em>, <em>pkgs_to_install=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/clipper_admin/deployers/tensorflow.html#create_endpoint"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#clipper_admin.deployers.tensorflow.create_endpoint" title="Permalink to this definition">¶</a></dt>
+<dd><p>Registers an app and deploys the provided predict function with TensorFlow model as
+a Clipper model.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>clipper_conn</strong> (<a class="reference internal" href="clipper_connection.html#clipper_admin.ClipperConnection" title="clipper_admin.ClipperConnection"><code class="xref py py-meth docutils literal notranslate"><span class="pre">clipper_admin.ClipperConnection()</span></code></a>) – A <code class="docutils literal notranslate"><span class="pre">ClipperConnection</span></code> object connected to a running Clipper cluster.</li>
+<li><strong>name</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.6)"><em>str</em></a>) – The name to be assigned to both the registered application and deployed model.</li>
+<li><strong>input_type</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.6)"><em>str</em></a>) – The input_type to be associated with the registered app and deployed model.
+One of “integers”, “floats”, “doubles”, “bytes”, or “strings”.</li>
+<li><strong>func</strong> (<em>function</em>) – The prediction function. Any state associated with the function will be
+captured via closure capture and pickled with Cloudpickle.</li>
+<li><strong>tf_sess</strong> (<em>tensorflow.python.client.session.Session</em>) – The Tensorflow Session to save or path to an existing saved model.</li>
+<li><strong>default_output</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.6)"><em>str</em></a><em>, </em><em>optional</em>) – The default output for the application. The default output will be returned whenever
+an application is unable to receive a response from a model within the specified
+query latency SLO (service level objective). The reason the default output was returned
+is always provided as part of the prediction response object. Defaults to “None”.</li>
+<li><strong>version</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.6)"><em>str</em></a><em>, </em><em>optional</em>) – The version to assign this model. Versions must be unique on a per-model
+basis, but may be re-used across different models.</li>
+<li><strong>slo_micros</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.6)"><em>int</em></a><em>, </em><em>optional</em>) – The query latency objective for the application in microseconds.
+This is the processing latency between Clipper receiving a request
+and sending a response. It does not account for network latencies
+before a request is received or after a response is sent.
+If Clipper cannot process a query within the latency objective,
+the default output is returned. Therefore, it is recommended that
+the SLO not be set aggressively low unless absolutely necessary.
+100000 (100ms) is a good starting value, but the optimal latency objective
+will vary depending on the application.</li>
+<li><strong>labels</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.6)"><em>list</em></a><em>(</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.6)"><em>str</em></a><em>)</em><em>, </em><em>optional</em>) – A list of strings annotating the model. These are ignored by Clipper
+and used purely for user annotations.</li>
+<li><strong>registry</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.6)"><em>str</em></a><em>, </em><em>optional</em>) – The Docker container registry to push the freshly built model to. Note
+that if you are running Clipper on Kubernetes, this registry must be accesible
+to the Kubernetes cluster in order to fetch the container from the registry.</li>
+<li><strong>base_image</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.6)"><em>str</em></a><em>, </em><em>optional</em>) – The base Docker image to build the new model image from. This
+image should contain all code necessary to run a Clipper model
+container RPC client.</li>
+<li><strong>num_replicas</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.6)"><em>int</em></a><em>, </em><em>optional</em>) – The number of replicas of the model to create. The number of replicas
+for a model can be changed at any time with
+<code class="xref py py-meth docutils literal notranslate"><span class="pre">clipper.ClipperConnection.set_num_replicas()</span></code>.</li>
+<li><strong>batch_size</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.6)"><em>int</em></a><em>, </em><em>optional</em>) – The user-defined query batch size for the model. Replicas of the model will attempt
+to process at most <cite>batch_size</cite> queries simultaneously. They may process smaller
+batches if <cite>batch_size</cite> queries are not immediately available.
+If the default value of -1 is used, Clipper will adaptively calculate the batch size for
+individual replicas of this model.</li>
+<li><strong>pkgs_to_install</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.6)"><em>list</em></a><em> (</em><em>of strings</em><em>)</em><em>, </em><em>optional</em>) – A list of the names of packages to install, using pip, in the container.
+The names must be strings.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</div>
+<div class="section" id="mxnet-models">
+<h2>MXNet Models<a class="headerlink" href="#mxnet-models" title="Permalink to this headline">¶</a></h2>
+<p>For MXNet, Clipper will serialize the model using <code class="docutils literal notranslate"><span class="pre">mxnet_model.save_checkpoint(...,</span> <span class="pre">epoch=0)</span></code>.</p>
+<dl class="function">
+<dt id="clipper_admin.deployers.mxnet.deploy_mxnet_model">
+<code class="descclassname">clipper_admin.deployers.mxnet.</code><code class="descname">deploy_mxnet_model</code><span class="sig-paren">(</span><em>clipper_conn</em>, <em>name</em>, <em>version</em>, <em>input_type</em>, <em>func</em>, <em>mxnet_model</em>, <em>mxnet_data_shapes</em>, <em>base_image='clipper/mxnet-container:develop'</em>, <em>labels=None</em>, <em>registry=None</em>, <em>num_replicas=1</em>, <em>batch_size=-1</em>, <em>pkgs_to_install=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/clipper_admin/deployers/mxnet.html#deploy_mxnet_model"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#clipper_admin.deployers.mxnet.deploy_mxnet_model" title="Permalink to this definition">¶</a></dt>
+<dd><p>Deploy a Python function with a MXNet model.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>clipper_conn</strong> (<a class="reference internal" href="clipper_connection.html#clipper_admin.ClipperConnection" title="clipper_admin.ClipperConnection"><code class="xref py py-meth docutils literal notranslate"><span class="pre">clipper_admin.ClipperConnection()</span></code></a>) – A <code class="docutils literal notranslate"><span class="pre">ClipperConnection</span></code> object connected to a running Clipper cluster.</li>
+<li><strong>name</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.6)"><em>str</em></a>) – The name to be assigned to both the registered application and deployed model.</li>
+<li><strong>version</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.6)"><em>str</em></a>) – The version to assign this model. Versions must be unique on a per-model
+basis, but may be re-used across different models.</li>
+<li><strong>input_type</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.6)"><em>str</em></a>) – The input_type to be associated with the registered app and deployed model.
+One of “integers”, “floats”, “doubles”, “bytes”, or “strings”.</li>
+<li><strong>func</strong> (<em>function</em>) – The prediction function. Any state associated with the function will be
+captured via closure capture and pickled with Cloudpickle.</li>
+<li><strong>mxnet_model</strong> (<em>mxnet model object</em>) – The MXNet model to save.</li>
+<li><strong>mxnet_data_shapes</strong> (<em>list of DataDesc objects</em>) – List of DataDesc objects representing the name, shape, type and layout information
+of data used for model prediction.
+Required because loading serialized MXNet models involves binding, which requires
+the shape of the data used to train the model.
+<a class="reference external" href="https://mxnet.incubator.apache.org/api/python/module.html#mxnet.module.BaseModule.bind">https://mxnet.incubator.apache.org/api/python/module.html#mxnet.module.BaseModule.bind</a></li>
+<li><strong>base_image</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.6)"><em>str</em></a><em>, </em><em>optional</em>) – The base Docker image to build the new model image from. This
+image should contain all code necessary to run a Clipper model
+container RPC client.</li>
+<li><strong>labels</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.6)"><em>list</em></a><em>(</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.6)"><em>str</em></a><em>)</em><em>, </em><em>optional</em>) – A list of strings annotating the model. These are ignored by Clipper
+and used purely for user annotations.</li>
+<li><strong>registry</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.6)"><em>str</em></a><em>, </em><em>optional</em>) – The Docker container registry to push the freshly built model to. Note
+that if you are running Clipper on Kubernetes, this registry must be accesible
+to the Kubernetes cluster in order to fetch the container from the registry.</li>
+<li><strong>num_replicas</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.6)"><em>int</em></a><em>, </em><em>optional</em>) – The number of replicas of the model to create. The number of replicas
+for a model can be changed at any time with
+<code class="xref py py-meth docutils literal notranslate"><span class="pre">clipper.ClipperConnection.set_num_replicas()</span></code>.</li>
+<li><strong>batch_size</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.6)"><em>int</em></a><em>, </em><em>optional</em>) – The user-defined query batch size for the model. Replicas of the model will attempt
+to process at most <cite>batch_size</cite> queries simultaneously. They may process smaller
+batches if <cite>batch_size</cite> queries are not immediately available.
+If the default value of -1 is used, Clipper will adaptively calculate the batch size for
+individual replicas of this model.</li>
+<li><strong>pkgs_to_install</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.6)"><em>list</em></a><em> (</em><em>of strings</em><em>)</em><em>, </em><em>optional</em>) – A list of the names of packages to install, using pip, in the container.
+The names must be strings.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">Regarding <cite>mxnet_data_shapes</cite> parameter:
+Clipper may provide the model with variable size input batches. Because MXNet can’t
+handle variable size input batches, we recommend setting batch size for input data
+to 1, or dynamically reshaping the model with every prediction based on the current
+input batch size.
+More information regarding a DataDesc object can be found here:
+<a class="reference external" href="https://mxnet.incubator.apache.org/versions/0.11.0/api/python/io.html#mxnet.io.DataDesc">https://mxnet.incubator.apache.org/versions/0.11.0/api/python/io.html#mxnet.io.DataDesc</a></p>
+</div>
+<p class="rubric">Example</p>
+<p>Create a MXNet model and then deploy it:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">clipper_admin</span> <span class="k">import</span> <span class="n">ClipperConnection</span><span class="p">,</span> <span class="n">DockerContainerManager</span>
+<span class="kn">from</span> <span class="nn">clipper_admin.deployers.mxnet</span> <span class="k">import</span> <span class="n">deploy_mxnet_model</span>
+<span class="kn">import</span> <span class="nn">mxnet</span> <span class="k">as</span> <span class="nn">mx</span>
+
+<span class="n">clipper_conn</span> <span class="o">=</span> <span class="n">ClipperConnection</span><span class="p">(</span><span class="n">DockerContainerManager</span><span class="p">())</span>
+
+<span class="c1"># Connect to an already-running Clipper cluster</span>
+<span class="n">clipper_conn</span><span class="o">.</span><span class="n">connect</span><span class="p">()</span>
+
+<span class="c1"># Create a MXNet model</span>
+<span class="c1"># Configure a two layer neuralnetwork</span>
+<span class="n">data</span> <span class="o">=</span> <span class="n">mx</span><span class="o">.</span><span class="n">symbol</span><span class="o">.</span><span class="n">Variable</span><span class="p">(</span><span class="s1">&#39;data&#39;</span><span class="p">)</span>
+<span class="n">fc1</span> <span class="o">=</span> <span class="n">mx</span><span class="o">.</span><span class="n">symbol</span><span class="o">.</span><span class="n">FullyConnected</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;fc1&#39;</span><span class="p">,</span> <span class="n">num_hidden</span><span class="o">=</span><span class="mi">128</span><span class="p">)</span>
+<span class="n">act1</span> <span class="o">=</span> <span class="n">mx</span><span class="o">.</span><span class="n">symbol</span><span class="o">.</span><span class="n">Activation</span><span class="p">(</span><span class="n">fc1</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;relu1&#39;</span><span class="p">,</span> <span class="n">act_type</span><span class="o">=</span><span class="s1">&#39;relu&#39;</span><span class="p">)</span>
+<span class="n">fc2</span> <span class="o">=</span> <span class="n">mx</span><span class="o">.</span><span class="n">symbol</span><span class="o">.</span><span class="n">FullyConnected</span><span class="p">(</span><span class="n">act1</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;fc2&#39;</span><span class="p">,</span> <span class="n">num_hidden</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>
+<span class="n">softmax</span> <span class="o">=</span> <span class="n">mx</span><span class="o">.</span><span class="n">symbol</span><span class="o">.</span><span class="n">SoftmaxOutput</span><span class="p">(</span><span class="n">fc2</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;softmax&#39;</span><span class="p">)</span>
+
+<span class="c1"># Load some training data</span>
+<span class="n">data_iter</span> <span class="o">=</span> <span class="n">mx</span><span class="o">.</span><span class="n">io</span><span class="o">.</span><span class="n">CSVIter</span><span class="p">(</span>
+    <span class="n">data_csv</span><span class="o">=</span><span class="s2">&quot;/path/to/train_data.csv&quot;</span><span class="p">,</span> <span class="n">data_shape</span><span class="o">=</span><span class="p">(</span><span class="mi">785</span><span class="p">,</span> <span class="p">),</span> <span class="n">batch_size</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+
+<span class="c1"># Initialize the module and fit it</span>
+<span class="n">mxnet_model</span> <span class="o">=</span> <span class="n">mx</span><span class="o">.</span><span class="n">mod</span><span class="o">.</span><span class="n">Module</span><span class="p">(</span><span class="n">softmax</span><span class="p">)</span>
+<span class="n">mxnet_model</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">data_iter</span><span class="p">,</span> <span class="n">num_epoch</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+
+<span class="n">data_shape</span> <span class="o">=</span> <span class="n">data_iter</span><span class="o">.</span><span class="n">provide_data</span>
+
+<span class="n">deploy_mxnet_model</span><span class="p">(</span>
+    <span class="n">clipper_conn</span><span class="p">,</span>
+    <span class="n">name</span><span class="o">=</span><span class="s2">&quot;example&quot;</span><span class="p">,</span>
+    <span class="n">version</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span>
+    <span class="n">input_type</span><span class="o">=</span><span class="s2">&quot;doubles&quot;</span><span class="p">,</span>
+    <span class="n">func</span><span class="o">=</span><span class="n">predict</span><span class="p">,</span>
+    <span class="n">mxnet_model</span><span class="o">=</span><span class="n">model</span><span class="p">,</span>
+    <span class="n">mxnet_data_shapes</span><span class="o">=</span><span class="n">data_shape</span><span class="p">)</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="function">
+<dt id="clipper_admin.deployers.mxnet.create_endpoint">
+<code class="descclassname">clipper_admin.deployers.mxnet.</code><code class="descname">create_endpoint</code><span class="sig-paren">(</span><em>clipper_conn</em>, <em>name</em>, <em>input_type</em>, <em>func</em>, <em>mxnet_model</em>, <em>mxnet_data_shapes</em>, <em>default_output='None'</em>, <em>version=1</em>, <em>slo_micros=3000000</em>, <em>labels=None</em>, <em>registry=None</em>, <em>base_image='clipper/mxnet-container:develop'</em>, <em>num_replicas=1</em>, <em>batch_size=-1</em>, <em>pkgs_to_install=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/clipper_admin/deployers/mxnet.html#create_endpoint"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#clipper_admin.deployers.mxnet.create_endpoint" title="Permalink to this definition">¶</a></dt>
+<dd><p>Registers an app and deploys the provided predict function with MXNet model as
+a Clipper model.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>clipper_conn</strong> (<a class="reference internal" href="clipper_connection.html#clipper_admin.ClipperConnection" title="clipper_admin.ClipperConnection"><code class="xref py py-meth docutils literal notranslate"><span class="pre">clipper_admin.ClipperConnection()</span></code></a>) – A <code class="docutils literal notranslate"><span class="pre">ClipperConnection</span></code> object connected to a running Clipper cluster.</li>
+<li><strong>name</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.6)"><em>str</em></a>) – The name to be assigned to both the registered application and deployed model.</li>
+<li><strong>input_type</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.6)"><em>str</em></a>) – The input_type to be associated with the registered app and deployed model.
+One of “integers”, “floats”, “doubles”, “bytes”, or “strings”.</li>
+<li><strong>func</strong> (<em>function</em>) – The prediction function. Any state associated with the function will be
+captured via closure capture and pickled with Cloudpickle.</li>
+<li><strong>mxnet_model</strong> (<em>mxnet model object</em>) – The MXNet model to save.
+the shape of the data used to train the model.</li>
+<li><strong>mxnet_data_shapes</strong> (<em>list of DataDesc objects</em>) – List of DataDesc objects representing the name, shape, type and layout information
+of data used for model prediction.
+Required because loading serialized MXNet models involves binding, which requires
+<a class="reference external" href="https://mxnet.incubator.apache.org/api/python/module.html#mxnet.module.BaseModule.bind">https://mxnet.incubator.apache.org/api/python/module.html#mxnet.module.BaseModule.bind</a></li>
+<li><strong>default_output</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.6)"><em>str</em></a><em>, </em><em>optional</em>) – The default output for the application. The default output will be returned whenever
+an application is unable to receive a response from a model within the specified
+query latency SLO (service level objective). The reason the default output was returned
+is always provided as part of the prediction response object. Defaults to “None”.</li>
+<li><strong>version</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.6)"><em>str</em></a><em>, </em><em>optional</em>) – The version to assign this model. Versions must be unique on a per-model
+basis, but may be re-used across different models.</li>
+<li><strong>slo_micros</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.6)"><em>int</em></a><em>, </em><em>optional</em>) – The query latency objective for the application in microseconds.
+This is the processing latency between Clipper receiving a request
+and sending a response. It does not account for network latencies
+before a request is received or after a response is sent.
+If Clipper cannot process a query within the latency objective,
+the default output is returned. Therefore, it is recommended that
+the SLO not be set aggressively low unless absolutely necessary.
+100000 (100ms) is a good starting value, but the optimal latency objective
+will vary depending on the application.</li>
+<li><strong>labels</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.6)"><em>list</em></a><em>(</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.6)"><em>str</em></a><em>)</em><em>, </em><em>optional</em>) – A list of strings annotating the model. These are ignored by Clipper
+and used purely for user annotations.</li>
+<li><strong>registry</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.6)"><em>str</em></a><em>, </em><em>optional</em>) – The Docker container registry to push the freshly built model to. Note
+that if you are running Clipper on Kubernetes, this registry must be accesible
+to the Kubernetes cluster in order to fetch the container from the registry.</li>
+<li><strong>base_image</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.6)"><em>str</em></a><em>, </em><em>optional</em>) – The base Docker image to build the new model image from. This
+image should contain all code necessary to run a Clipper model
+container RPC client.</li>
+<li><strong>num_replicas</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.6)"><em>int</em></a><em>, </em><em>optional</em>) – The number of replicas of the model to create. The number of replicas
+for a model can be changed at any time with
+<code class="xref py py-meth docutils literal notranslate"><span class="pre">clipper.ClipperConnection.set_num_replicas()</span></code>.</li>
+<li><strong>batch_size</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.6)"><em>int</em></a><em>, </em><em>optional</em>) – The user-defined query batch size for the model. Replicas of the model will attempt
+to process at most <cite>batch_size</cite> queries simultaneously. They may process smaller
+batches if <cite>batch_size</cite> queries are not immediately available.
+If the default value of -1 is used, Clipper will adaptively calculate the batch size for
+individual replicas of this model.</li>
+<li><strong>pkgs_to_install</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.6)"><em>list</em></a><em> (</em><em>of strings</em><em>)</em><em>, </em><em>optional</em>) – A list of the names of packages to install, using pip, in the container.
+The names must be strings.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<dl class="last docutils">
+<dt>Regarding <cite>mxnet_data_shapes</cite> parameter:</dt>
+<dd>Clipper may provide the model with variable size input batches. Because MXNet can’t
+handle variable size input batches, we recommend setting batch size for input data
+to 1, or dynamically reshaping the model with every prediction based on the current
+input batch size.
+More information regarding a DataDesc object can be found here:
+<a class="reference external" href="https://mxnet.incubator.apache.org/versions/0.11.0/api/python/io.html#mxnet.io.DataDesc">https://mxnet.incubator.apache.org/versions/0.11.0/api/python/io.html#mxnet.io.DataDesc</a></dd>
+</dl>
+</div>
+</dd></dl>
+
+</div>
+<div class="section" id="pytorch-onnx-caffe2-models">
+<h2>PyTorch-&gt;ONNX-&gt;Caffe2 Models<a class="headerlink" href="#pytorch-onnx-caffe2-models" title="Permalink to this headline">¶</a></h2>
+<div class="admonition warning">
+<p class="first admonition-title">Warning</p>
+<p class="last">ONNX support is experimental. The model container might not be stable. As of 0.3 release, we expect the Caffe2 backend will function with some limitation.</p>
+</div>
+<p>This module currently takes a PyTorch model, save it to ONNX files, and serve it using Caffe2.</p>
+<dl class="function">
+<dt id="clipper_admin.deployers.onnx.deploy_pytorch_model">
+<code class="descclassname">clipper_admin.deployers.onnx.</code><code class="descname">deploy_pytorch_model</code><span class="sig-paren">(</span><em>clipper_conn</em>, <em>name</em>, <em>version</em>, <em>input_type</em>, <em>inputs</em>, <em>func</em>, <em>pytorch_model</em>, <em>base_image=None</em>, <em>labels=None</em>, <em>registry=None</em>, <em>num_replicas=1</em>, <em>onnx_backend='caffe2'</em>, <em>batch_size=-1</em>, <em>pkgs_to_install=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/clipper_admin/deployers/onnx.html#deploy_pytorch_model"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#clipper_admin.deployers.onnx.deploy_pytorch_model" title="Permalink to this definition">¶</a></dt>
+<dd><p>This function deploys the prediction function with a PyTorch model.
+It serializes the PyTorch model in Onnx format and creates a container that loads it as a
+Caffe2 model.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>clipper_conn</strong> (<a class="reference internal" href="clipper_connection.html#clipper_admin.ClipperConnection" title="clipper_admin.ClipperConnection"><code class="xref py py-meth docutils literal notranslate"><span class="pre">clipper_admin.ClipperConnection()</span></code></a>) – A <code class="docutils literal notranslate"><span class="pre">ClipperConnection</span></code> object connected to a running Clipper cluster.</li>
+<li><strong>name</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.6)"><em>str</em></a>) – The name to be assigned to both the registered application and deployed model.</li>
+<li><strong>version</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.6)"><em>str</em></a>) – The version to assign this model. Versions must be unique on a per-model
+basis, but may be re-used across different models.</li>
+<li><strong>input_type</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.6)"><em>str</em></a>) – The input_type to be associated with the registered app and deployed model.
+One of “integers”, “floats”, “doubles”, “bytes”, or “strings”.</li>
+<li><strong>inputs</strong> – input of func.</li>
+<li><strong>func</strong> (<em>function</em>) – The prediction function. Any state associated with the function will be
+captured via closure capture and pickled with Cloudpickle.</li>
+<li><strong>pytorch_model</strong> (<em>pytorch model object</em>) – The Pytorch model to save.</li>
+<li><strong>base_image</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.6)"><em>str</em></a><em>, </em><em>optional</em>) – The base Docker image to build the new model image from. This
+image should contain all code necessary to run a Clipper model
+container RPC client.</li>
+<li><strong>labels</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.6)"><em>list</em></a><em>(</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.6)"><em>str</em></a><em>)</em><em>, </em><em>optional</em>) – A list of strings annotating the model. These are ignored by Clipper
+and used purely for user annotations.</li>
+<li><strong>registry</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.6)"><em>str</em></a><em>, </em><em>optional</em>) – The Docker container registry to push the freshly built model to. Note
+that if you are running Clipper on Kubernetes, this registry must be accesible
+to the Kubernetes cluster in order to fetch the container from the registry.</li>
+<li><strong>num_replicas</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.6)"><em>int</em></a><em>, </em><em>optional</em>) – The number of replicas of the model to create. The number of replicas
+for a model can be changed at any time with
+<code class="xref py py-meth docutils literal notranslate"><span class="pre">clipper.ClipperConnection.set_num_replicas()</span></code>.</li>
+<li><strong>onnx_backend</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.6)"><em>str</em></a><em>, </em><em>optional</em>) – The provided onnx backend.Caffe2 is the only currently supported ONNX backend.</li>
+<li><strong>batch_size</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.6)"><em>int</em></a><em>, </em><em>optional</em>) – The user-defined query batch size for the model. Replicas of the model will attempt
+to process at most <cite>batch_size</cite> queries simultaneously. They may process smaller
+batches if <cite>batch_size</cite> queries are not immediately available.
+If the default value of -1 is used, Clipper will adaptively calculate the batch size for
+individual replicas of this model.</li>
+<li><strong>pkgs_to_install</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.6)"><em>list</em></a><em> (</em><em>of strings</em><em>)</em><em>, </em><em>optional</em>) – A list of the names of packages to install, using pip, in the container.
+The names must be strings.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="clipper_admin.deployers.onnx.create_pytorch_endpoint">
+<code class="descclassname">clipper_admin.deployers.onnx.</code><code class="descname">create_pytorch_endpoint</code><span class="sig-paren">(</span><em>clipper_conn</em>, <em>name</em>, <em>input_type</em>, <em>inputs</em>, <em>func</em>, <em>pytorch_model</em>, <em>default_output='None'</em>, <em>version=1</em>, <em>slo_micros=3000000</em>, <em>labels=None</em>, <em>registry=None</em>, <em>base_image=None</em>, <em>num_replicas=1</em>, <em>onnx_backend='caffe2'</em>, <em>batch_size=-1</em>, <em>pkgs_to_install=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/clipper_admin/deployers/onnx.html#create_pytorch_endpoint"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#clipper_admin.deployers.onnx.create_pytorch_endpoint" title="Permalink to this definition">¶</a></dt>
+<dd><p>This function deploys the prediction function with a PyTorch model.
+It serializes the PyTorch model in Onnx format and creates a container that loads it as a
+Caffe2 model.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>clipper_conn</strong> (<a class="reference internal" href="clipper_connection.html#clipper_admin.ClipperConnection" title="clipper_admin.ClipperConnection"><code class="xref py py-meth docutils literal notranslate"><span class="pre">clipper_admin.ClipperConnection()</span></code></a>) – A <code class="docutils literal notranslate"><span class="pre">ClipperConnection</span></code> object connected to a running Clipper cluster.</li>
+<li><strong>name</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.6)"><em>str</em></a>) – The name to be assigned to both the registered application and deployed model.</li>
+<li><strong>input_type</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.6)"><em>str</em></a>) – The input_type to be associated with the registered app and deployed model.
+One of “integers”, “floats”, “doubles”, “bytes”, or “strings”.</li>
+<li><strong>inputs</strong> – input of func.</li>
+<li><strong>func</strong> (<em>function</em>) – The prediction function. Any state associated with the function will be
+captured via closure capture and pickled with Cloudpickle.</li>
+<li><strong>pytorch_model</strong> (<em>pytorch model object</em>) – The PyTorch model to save.</li>
+<li><strong>default_output</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.6)"><em>str</em></a><em>, </em><em>optional</em>) – The default output for the application. The default output will be returned whenever
+an application is unable to receive a response from a model within the specified
+query latency SLO (service level objective). The reason the default output was returned
+is always provided as part of the prediction response object. Defaults to “None”.</li>
+<li><strong>version</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.6)"><em>str</em></a><em>, </em><em>optional</em>) – The version to assign this model. Versions must be unique on a per-model
+basis, but may be re-used across different models.</li>
+<li><strong>slo_micros</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.6)"><em>int</em></a><em>, </em><em>optional</em>) – The query latency objective for the application in microseconds.
+This is the processing latency between Clipper receiving a request
+and sending a response. It does not account for network latencies
+before a request is received or after a response is sent.
+If Clipper cannot process a query within the latency objective,
+the default output is returned. Therefore, it is recommended that
+the SLO not be set aggressively low unless absolutely necessary.
+100000 (100ms) is a good starting value, but the optimal latency objective
+will vary depending on the application.</li>
+<li><strong>labels</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.6)"><em>list</em></a><em>(</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.6)"><em>str</em></a><em>)</em><em>, </em><em>optional</em>) – A list of strings annotating the model. These are ignored by Clipper
+and used purely for user annotations.</li>
+<li><strong>registry</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.6)"><em>str</em></a><em>, </em><em>optional</em>) – The Docker container registry to push the freshly built model to. Note
+that if you are running Clipper on Kubernetes, this registry must be accesible
+to the Kubernetes cluster in order to fetch the container from the registry.</li>
+<li><strong>base_image</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.6)"><em>str</em></a><em>, </em><em>optional</em>) – The base Docker image to build the new model image from. This
+image should contain all code necessary to run a Clipper model
+container RPC client.</li>
+<li><strong>num_replicas</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.6)"><em>int</em></a><em>, </em><em>optional</em>) – The number of replicas of the model to create. The number of replicas
+for a model can be changed at any time with
+<code class="xref py py-meth docutils literal notranslate"><span class="pre">clipper.ClipperConnection.set_num_replicas()</span></code>.</li>
+<li><strong>onnx_backend</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.6)"><em>str</em></a><em>, </em><em>optional</em>) – The provided onnx backend.Caffe2 is the only currently supported ONNX backend.</li>
+<li><strong>batch_size</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.6)"><em>int</em></a><em>, </em><em>optional</em>) – The user-defined query batch size for the model. Replicas of the model will attempt
+to process at most <cite>batch_size</cite> queries simultaneously. They may process smaller
+batches if <cite>batch_size</cite> queries are not immediately available.
+If the default value of -1 is used, Clipper will adaptively calculate the batch size for
+individual replicas of this model.</li>
+<li><strong>pkgs_to_install</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.6)"><em>list</em></a><em> (</em><em>of strings</em><em>)</em><em>, </em><em>optional</em>) – A list of the names of packages to install, using pip, in the container.
+The names must be strings.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</div>
+<div class="section" id="create-your-own-container">
+<h2>Create Your Own Container<a class="headerlink" href="#create-your-own-container" title="Permalink to this headline">¶</a></h2>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">This method should be considered as the “last resort” when both <code class="docutils literal notranslate"><span class="pre">deploy_python_closure</span></code> won’t work
+due to dependency issue and/or Clipper does not provide pre-built containers.</p>
+</div>
+<p>You can create a new Docker image based on the default
+image <code class="docutils literal notranslate"><span class="pre">clipper/python-closure-container:develop</span></code> that installs these additional dependencies.</p>
+<p>For example, if you knew your function needed the Python package <code class="docutils literal notranslate"><span class="pre">networkx</span></code>, you could create
+the following Dockerfile:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">FROM</span> <span class="n">clipper</span><span class="o">/</span><span class="n">python</span><span class="o">-</span><span class="n">closure</span><span class="o">-</span><span class="n">container</span><span class="p">:</span><span class="n">develop</span>
+<span class="n">RUN</span> <span class="n">pip</span> <span class="n">install</span> <span class="n">networkx</span>
+</pre></div>
+</div>
+<p>You would then use this Dockerfile to build a new image:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">docker</span> <span class="n">build</span> <span class="o">-</span><span class="n">t</span> <span class="n">python</span><span class="o">-</span><span class="n">closure</span><span class="o">-</span><span class="k">with</span><span class="o">-</span><span class="n">networkx</span> <span class="o">.</span>
+</pre></div>
+</div>
+<p>Then, when you call <code class="docutils literal notranslate"><span class="pre">deploy_python_closure</span></code> or <code class="docutils literal notranslate"><span class="pre">create_endpoint</span></code>, instead of
+leaving the <code class="docutils literal notranslate"><span class="pre">base_image</span></code> argument to be the default, you would set it to
+<code class="docutils literal notranslate"><span class="pre">base_image=&quot;python-closure-with-networkx&quot;</span></code> and now the container won’t need to install
+networkx each time th container is initialized.</p>
+</div>
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="exceptions.html" class="btn btn-neutral float-right" title="Exceptions" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="container_managers.html" class="btn btn-neutral" title="Container Managers" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2017, Dan Crankshaw.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'./',
+            VERSION:'0.2.0rc1',
+            LANGUAGE:'None',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="_static/jquery.js"></script>
+      <script type="text/javascript" src="_static/underscore.js"></script>
+      <script type="text/javascript" src="_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="_static/js/theme.js"></script>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

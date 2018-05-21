@@ -1,0 +1,1554 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>clipper_admin.clipper_admin &mdash; Clipper 0.2.0rc1 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  
+    <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+
+  
+  <script src="../../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../../index.html" class="icon icon-home"> Clipper
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.2
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Python API Documentation</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../clipper_connection.html">Clipper Connection</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../container_managers.html">Container Managers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../model_deployers.html">Model Deployers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../exceptions.html">Exceptions</a></li>
+</ul>
+<p class="caption"><span class="caption-text">R Clipper Documentation</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../rclipper.html">RClipper</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">Clipper</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../index.html">Module code</a> &raquo;</li>
+        
+      <li>clipper_admin.clipper_admin</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for clipper_admin.clipper_admin</h1><div class="highlight"><pre>
+<span></span><span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">absolute_import</span><span class="p">,</span> <span class="n">division</span><span class="p">,</span> <span class="n">print_function</span>
+<span class="kn">import</span> <span class="nn">logging</span>
+<span class="kn">import</span> <span class="nn">docker</span>
+<span class="kn">import</span> <span class="nn">tempfile</span>
+<span class="kn">import</span> <span class="nn">requests</span>
+<span class="kn">from</span> <span class="nn">requests.exceptions</span> <span class="k">import</span> <span class="n">RequestException</span>
+<span class="kn">import</span> <span class="nn">json</span>
+<span class="kn">import</span> <span class="nn">pprint</span>
+<span class="kn">import</span> <span class="nn">time</span>
+<span class="kn">import</span> <span class="nn">re</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">tarfile</span>
+<span class="kn">import</span> <span class="nn">sys</span>
+<span class="kn">from</span> <span class="nn">cloudpickle</span> <span class="k">import</span> <span class="n">CloudPickler</span>
+<span class="kn">import</span> <span class="nn">pickle</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="k">if</span> <span class="n">sys</span><span class="o">.</span><span class="n">version_info</span> <span class="o">&lt;</span> <span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="mi">0</span><span class="p">):</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="kn">from</span> <span class="nn">cStringIO</span> <span class="k">import</span> <span class="n">StringIO</span>
+    <span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
+        <span class="kn">from</span> <span class="nn">StringIO</span> <span class="k">import</span> <span class="n">StringIO</span>
+    <span class="n">PY3</span> <span class="o">=</span> <span class="kc">False</span>
+<span class="k">else</span><span class="p">:</span>
+    <span class="kn">from</span> <span class="nn">io</span> <span class="k">import</span> <span class="n">BytesIO</span> <span class="k">as</span> <span class="n">StringIO</span>
+    <span class="n">PY3</span> <span class="o">=</span> <span class="kc">True</span>
+
+<span class="kn">from</span> <span class="nn">.container_manager</span> <span class="k">import</span> <span class="n">CONTAINERLESS_MODEL_IMAGE</span>
+<span class="kn">from</span> <span class="nn">.exceptions</span> <span class="k">import</span> <span class="n">ClipperException</span><span class="p">,</span> <span class="n">UnconnectedException</span>
+<span class="kn">from</span> <span class="nn">.version</span> <span class="k">import</span> <span class="n">__version__</span>
+
+<span class="n">DEFAULT_LABEL</span> <span class="o">=</span> <span class="p">[]</span>
+<span class="n">DEFAULT_PREDICTION_CACHE_SIZE_BYTES</span> <span class="o">=</span> <span class="mi">33554432</span>
+<span class="n">CLIPPER_TEMP_DIR</span> <span class="o">=</span> <span class="s2">&quot;/tmp/clipper&quot;</span>
+
+<span class="n">logging</span><span class="o">.</span><span class="n">basicConfig</span><span class="p">(</span>
+    <span class="nb">format</span><span class="o">=</span><span class="s1">&#39;</span><span class="si">%(asctime)s</span><span class="s1"> </span><span class="si">%(levelname)-8s</span><span class="s1"> [</span><span class="si">%(filename)s</span><span class="s1">:</span><span class="si">%(lineno)d</span><span class="s1">] </span><span class="si">%(message)s</span><span class="s1">&#39;</span><span class="p">,</span>
+    <span class="n">datefmt</span><span class="o">=</span><span class="s1">&#39;%y-%m-</span><span class="si">%d</span><span class="s1">:%H:%M:%S&#39;</span><span class="p">,</span>
+    <span class="n">level</span><span class="o">=</span><span class="n">logging</span><span class="o">.</span><span class="n">INFO</span><span class="p">)</span>
+
+<span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
+
+<span class="n">deploy_regex_str</span> <span class="o">=</span> <span class="s2">&quot;[a-z0-9]([-a-z0-9]*[a-z0-9])?\Z&quot;</span>
+<span class="n">deployment_regex</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="n">deploy_regex_str</span><span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">_validate_versioned_model_name</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">version</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">deployment_regex</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="n">name</span><span class="p">)</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">ClipperException</span><span class="p">(</span>
+            <span class="s2">&quot;Invalid value: </span><span class="si">{name}</span><span class="s2">: a model name must be a valid DNS-1123 &quot;</span>
+            <span class="s2">&quot; subdomain. It must consist of lower case &quot;</span>
+            <span class="s2">&quot;alphanumeric characters, &#39;-&#39; or &#39;.&#39;, and must start and end with &quot;</span>
+            <span class="s2">&quot;an alphanumeric character (e.g. &#39;example.com&#39;, regex used for &quot;</span>
+            <span class="s2">&quot;validation is &#39;</span><span class="si">{reg}</span><span class="s2">&#39;&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span> <span class="n">reg</span><span class="o">=</span><span class="n">deploy_regex_str</span><span class="p">))</span>
+    <span class="k">if</span> <span class="n">deployment_regex</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="n">version</span><span class="p">)</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">ClipperException</span><span class="p">(</span>
+            <span class="s2">&quot;Invalid value: </span><span class="si">{version}</span><span class="s2">: a model version must be a valid DNS-1123 &quot;</span>
+            <span class="s2">&quot; subdomain. It must consist of lower case &quot;</span>
+            <span class="s2">&quot;alphanumeric characters, &#39;-&#39; or &#39;.&#39;, and must start and end with &quot;</span>
+            <span class="s2">&quot;an alphanumeric character (e.g. &#39;example.com&#39;, regex used for &quot;</span>
+            <span class="s2">&quot;validation is &#39;</span><span class="si">{reg}</span><span class="s2">&#39;&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                <span class="n">version</span><span class="o">=</span><span class="n">version</span><span class="p">,</span> <span class="n">reg</span><span class="o">=</span><span class="n">deploy_regex_str</span><span class="p">))</span>
+
+
+<div class="viewcode-block" id="ClipperConnection"><a class="viewcode-back" href="../../clipper_connection.html#clipper_admin.ClipperConnection">[docs]</a><span class="k">class</span> <span class="nc">ClipperConnection</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+<div class="viewcode-block" id="ClipperConnection.__init__"><a class="viewcode-back" href="../../clipper_connection.html#clipper_admin.ClipperConnection.__init__">[docs]</a>    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">container_manager</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Create a new ClipperConnection object.</span>
+
+<span class="sd">        After creating a ``ClipperConnection`` instance, you still need to connect</span>
+<span class="sd">        to a Clipper cluster. You can connect to an existing cluster by calling</span>
+<span class="sd">        :py:meth:`clipper_admin.ClipperConnection.connect` or create a new Clipper cluster</span>
+<span class="sd">        with :py:meth:`clipper_admin.ClipperConnection.start_clipper`, which will automatically</span>
+<span class="sd">        connect to the cluster once it Clipper has successfully started.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        container_manager : ``clipper_admin.container_manager.ContainerManager``</span>
+<span class="sd">            An instance of a concrete subclass of ``ContainerManager``.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">connected</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cm</span> <span class="o">=</span> <span class="n">container_manager</span></div>
+
+<div class="viewcode-block" id="ClipperConnection.start_clipper"><a class="viewcode-back" href="../../clipper_connection.html#clipper_admin.ClipperConnection.start_clipper">[docs]</a>    <span class="k">def</span> <span class="nf">start_clipper</span><span class="p">(</span>
+            <span class="bp">self</span><span class="p">,</span>
+            <span class="n">query_frontend_image</span><span class="o">=</span><span class="s1">&#39;clipper/query_frontend:</span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                <span class="n">__version__</span><span class="p">),</span>
+            <span class="n">mgmt_frontend_image</span><span class="o">=</span><span class="s1">&#39;clipper/management_frontend:</span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                <span class="n">__version__</span><span class="p">),</span>
+            <span class="n">cache_size</span><span class="o">=</span><span class="n">DEFAULT_PREDICTION_CACHE_SIZE_BYTES</span><span class="p">,</span>
+            <span class="n">num_frontend_replicas</span><span class="o">=</span><span class="mi">1</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Start a new Clipper cluster and connect to it.</span>
+
+<span class="sd">        This command will start a new Clipper instance using the container manager provided when</span>
+<span class="sd">        the ``ClipperConnection`` instance was constructed.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        query_frontend_image : str(optional)</span>
+<span class="sd">            The query frontend docker image to use. You can set this argument to specify</span>
+<span class="sd">            a custom build of the query frontend, but any customization should maintain API</span>
+<span class="sd">            compability and preserve the expected behavior of the system.</span>
+<span class="sd">        mgmt_frontend_image : str(optional)</span>
+<span class="sd">            The management frontend docker image to use. You can set this argument to specify</span>
+<span class="sd">            a custom build of the management frontend, but any customization should maintain API</span>
+<span class="sd">            compability and preserve the expected behavior of the system.</span>
+<span class="sd">        cache_size : int, optional</span>
+<span class="sd">            The size of Clipper&#39;s prediction cache in bytes. Default cache size is 32 MiB.</span>
+
+<span class="sd">        Raises</span>
+<span class="sd">        ------</span>
+<span class="sd">        :py:exc:`clipper.ClipperException`</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">cm</span><span class="o">.</span><span class="n">start_clipper</span><span class="p">(</span><span class="n">query_frontend_image</span><span class="p">,</span> <span class="n">mgmt_frontend_image</span><span class="p">,</span>
+                                  <span class="n">cache_size</span><span class="p">,</span> <span class="n">num_frontend_replicas</span><span class="p">)</span>
+            <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="n">url</span> <span class="o">=</span> <span class="s2">&quot;http://</span><span class="si">{host}</span><span class="s2">/metrics&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                        <span class="n">host</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">cm</span><span class="o">.</span><span class="n">get_query_addr</span><span class="p">())</span>
+                    <span class="n">r</span> <span class="o">=</span> <span class="n">requests</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">url</span><span class="p">,</span> <span class="n">timeout</span><span class="o">=</span><span class="mi">5</span><span class="p">)</span>
+                    <span class="k">if</span> <span class="n">r</span><span class="o">.</span><span class="n">status_code</span> <span class="o">!=</span> <span class="n">requests</span><span class="o">.</span><span class="n">codes</span><span class="o">.</span><span class="n">ok</span><span class="p">:</span>
+                        <span class="k">raise</span> <span class="n">RequestException</span>
+                    <span class="k">break</span>
+                <span class="k">except</span> <span class="n">RequestException</span><span class="p">:</span>
+                    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Clipper still initializing.&quot;</span><span class="p">)</span>
+                    <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Clipper is running&quot;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">connected</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="k">except</span> <span class="n">ClipperException</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;Error starting Clipper: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">e</span><span class="o">.</span><span class="n">msg</span><span class="p">))</span>
+            <span class="k">raise</span> <span class="n">e</span></div>
+
+<div class="viewcode-block" id="ClipperConnection.connect"><a class="viewcode-back" href="../../clipper_connection.html#clipper_admin.ClipperConnection.connect">[docs]</a>    <span class="k">def</span> <span class="nf">connect</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Connect to a running Clipper cluster.&quot;&quot;&quot;</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">cm</span><span class="o">.</span><span class="n">connect</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">connected</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Successfully connected to Clipper cluster at </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">cm</span><span class="o">.</span><span class="n">get_query_addr</span><span class="p">()))</span></div>
+
+<div class="viewcode-block" id="ClipperConnection.register_application"><a class="viewcode-back" href="../../clipper_connection.html#clipper_admin.ClipperConnection.register_application">[docs]</a>    <span class="k">def</span> <span class="nf">register_application</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">input_type</span><span class="p">,</span> <span class="n">default_output</span><span class="p">,</span>
+                             <span class="n">slo_micros</span><span class="p">):</span>
+        <span class="c1"># TODO(crankshaw): Add links to user guide section on input types once user guide is</span>
+        <span class="c1"># written:</span>
+        <span class="c1"># &quot;See the `User Guide &lt;http://clipper.ai/user_guide/#input-types&gt;`_ for more details</span>
+        <span class="c1"># on picking the right input type for your application.&quot;</span>
+        <span class="sd">&quot;&quot;&quot;Register a new application with Clipper.</span>
+
+<span class="sd">        An application in Clipper corresponds to a named REST endpoint that can be used to request</span>
+<span class="sd">        predictions. This command will attempt to create a new endpoint with the provided name.</span>
+<span class="sd">        Application names must be unique. This command will fail if an application with the provided</span>
+<span class="sd">        name already exists.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        name : str</span>
+<span class="sd">            The unique name of the application.</span>
+<span class="sd">        input_type : str</span>
+<span class="sd">            The type of the request data this endpoint can process. Input type can be</span>
+<span class="sd">            one of &quot;integers&quot;, &quot;floats&quot;, &quot;doubles&quot;, &quot;bytes&quot;, or &quot;strings&quot;.</span>
+<span class="sd">        default_output : str</span>
+<span class="sd">            The default output for the application. The default output will be returned whenever</span>
+<span class="sd">            an application is unable to receive a response from a model within the specified</span>
+<span class="sd">            query latency SLO (service level objective). The reason the default output was returned</span>
+<span class="sd">            is always provided as part of the prediction response object.</span>
+<span class="sd">        slo_micros : int</span>
+<span class="sd">            The query latency objective for the application in microseconds.</span>
+<span class="sd">            This is the processing latency between Clipper receiving a request</span>
+<span class="sd">            and sending a response. It does not account for network latencies</span>
+<span class="sd">            before a request is received or after a response is sent.</span>
+<span class="sd">            If Clipper cannot process a query within the latency objective,</span>
+<span class="sd">            the default output is returned. Therefore, it is recommended that</span>
+<span class="sd">            the SLO not be set aggressively low unless absolutely necessary.</span>
+<span class="sd">            100000 (100ms) is a good starting value, but the optimal latency objective</span>
+<span class="sd">            will vary depending on the application.</span>
+
+<span class="sd">        Raises</span>
+<span class="sd">        ------</span>
+<span class="sd">        :py:exc:`clipper.UnconnectedException`</span>
+<span class="sd">        :py:exc:`clipper.ClipperException`</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">connected</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">UnconnectedException</span><span class="p">()</span>
+        <span class="n">url</span> <span class="o">=</span> <span class="s2">&quot;http://</span><span class="si">{host}</span><span class="s2">/admin/add_app&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+            <span class="n">host</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">cm</span><span class="o">.</span><span class="n">get_admin_addr</span><span class="p">())</span>
+        <span class="n">req_json</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">({</span>
+            <span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="n">name</span><span class="p">,</span>
+            <span class="s2">&quot;input_type&quot;</span><span class="p">:</span> <span class="n">input_type</span><span class="p">,</span>
+            <span class="s2">&quot;default_output&quot;</span><span class="p">:</span> <span class="n">default_output</span><span class="p">,</span>
+            <span class="s2">&quot;latency_slo_micros&quot;</span><span class="p">:</span> <span class="n">slo_micros</span>
+        <span class="p">})</span>
+        <span class="n">headers</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;Content-type&#39;</span><span class="p">:</span> <span class="s1">&#39;application/json&#39;</span><span class="p">}</span>
+        <span class="n">r</span> <span class="o">=</span> <span class="n">requests</span><span class="o">.</span><span class="n">post</span><span class="p">(</span><span class="n">url</span><span class="p">,</span> <span class="n">headers</span><span class="o">=</span><span class="n">headers</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="n">req_json</span><span class="p">)</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="n">r</span><span class="o">.</span><span class="n">text</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">r</span><span class="o">.</span><span class="n">status_code</span> <span class="o">!=</span> <span class="n">requests</span><span class="o">.</span><span class="n">codes</span><span class="o">.</span><span class="n">ok</span><span class="p">:</span>
+            <span class="n">msg</span> <span class="o">=</span> <span class="s2">&quot;Received error status code: </span><span class="si">{code}</span><span class="s2"> and message: </span><span class="si">{msg}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                <span class="n">code</span><span class="o">=</span><span class="n">r</span><span class="o">.</span><span class="n">status_code</span><span class="p">,</span> <span class="n">msg</span><span class="o">=</span><span class="n">r</span><span class="o">.</span><span class="n">text</span><span class="p">)</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="n">ClipperException</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Application </span><span class="si">{app}</span><span class="s2"> was successfully registered&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                <span class="n">app</span><span class="o">=</span><span class="n">name</span><span class="p">))</span></div>
+
+<div class="viewcode-block" id="ClipperConnection.delete_application"><a class="viewcode-back" href="../../clipper_connection.html#clipper_admin.ClipperConnection.delete_application">[docs]</a>    <span class="k">def</span> <span class="nf">delete_application</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">connected</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">UnconnectedException</span><span class="p">()</span>
+
+        <span class="n">url</span> <span class="o">=</span> <span class="s2">&quot;http://</span><span class="si">{host}</span><span class="s2">/admin/delete_app&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+            <span class="n">host</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">cm</span><span class="o">.</span><span class="n">get_admin_addr</span><span class="p">())</span>
+        <span class="n">req_json</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">({</span><span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="n">name</span><span class="p">})</span>
+        <span class="n">headers</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;Content-type&quot;</span><span class="p">:</span> <span class="s2">&quot;application/json&quot;</span><span class="p">}</span>
+        <span class="n">r</span> <span class="o">=</span> <span class="n">requests</span><span class="o">.</span><span class="n">post</span><span class="p">(</span><span class="n">url</span><span class="p">,</span> <span class="n">headers</span><span class="o">=</span><span class="n">headers</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="n">req_json</span><span class="p">)</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="n">r</span><span class="o">.</span><span class="n">text</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">r</span><span class="o">.</span><span class="n">status_code</span> <span class="o">!=</span> <span class="n">requests</span><span class="o">.</span><span class="n">codes</span><span class="o">.</span><span class="n">ok</span><span class="p">:</span>
+            <span class="n">msg</span> <span class="o">=</span> <span class="s2">&quot;Received error status code: </span><span class="si">{code}</span><span class="s2"> and message: </span><span class="si">{msg}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                <span class="n">code</span><span class="o">=</span><span class="n">r</span><span class="o">.</span><span class="n">status_code</span><span class="p">,</span> <span class="n">msg</span><span class="o">=</span><span class="n">r</span><span class="o">.</span><span class="n">text</span><span class="p">)</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="n">ClipperException</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+                <span class="s2">&quot;Application </span><span class="si">{app}</span><span class="s2"> was successfully deleted&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">app</span><span class="o">=</span><span class="n">name</span><span class="p">))</span></div>
+
+<div class="viewcode-block" id="ClipperConnection.link_model_to_app"><a class="viewcode-back" href="../../clipper_connection.html#clipper_admin.ClipperConnection.link_model_to_app">[docs]</a>    <span class="k">def</span> <span class="nf">link_model_to_app</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">app_name</span><span class="p">,</span> <span class="n">model_name</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Routes requests from the specified app to be evaluted by the specified model.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        app_name : str</span>
+<span class="sd">            The name of the application</span>
+<span class="sd">        model_name : str</span>
+<span class="sd">            The name of the model to link to the application</span>
+
+<span class="sd">        Raises</span>
+<span class="sd">        ------</span>
+<span class="sd">        :py:exc:`clipper.UnconnectedException`</span>
+<span class="sd">        :py:exc:`clipper.ClipperException`</span>
+
+<span class="sd">        Note</span>
+<span class="sd">        -----</span>
+<span class="sd">        Both the specified model and application must be registered with Clipper, and they</span>
+<span class="sd">        must have the same input type. If the application has previously been linked to a different</span>
+<span class="sd">        model, this command will fail.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">connected</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">UnconnectedException</span><span class="p">()</span>
+
+        <span class="n">url</span> <span class="o">=</span> <span class="s2">&quot;http://</span><span class="si">{host}</span><span class="s2">/admin/add_model_links&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+            <span class="n">host</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">cm</span><span class="o">.</span><span class="n">get_admin_addr</span><span class="p">())</span>
+        <span class="n">req_json</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">({</span>
+            <span class="s2">&quot;app_name&quot;</span><span class="p">:</span> <span class="n">app_name</span><span class="p">,</span>
+            <span class="s2">&quot;model_names&quot;</span><span class="p">:</span> <span class="p">[</span><span class="n">model_name</span><span class="p">]</span>
+        <span class="p">})</span>
+        <span class="n">headers</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;Content-type&#39;</span><span class="p">:</span> <span class="s1">&#39;application/json&#39;</span><span class="p">}</span>
+        <span class="n">r</span> <span class="o">=</span> <span class="n">requests</span><span class="o">.</span><span class="n">post</span><span class="p">(</span><span class="n">url</span><span class="p">,</span> <span class="n">headers</span><span class="o">=</span><span class="n">headers</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="n">req_json</span><span class="p">)</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="n">r</span><span class="o">.</span><span class="n">text</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">r</span><span class="o">.</span><span class="n">status_code</span> <span class="o">!=</span> <span class="n">requests</span><span class="o">.</span><span class="n">codes</span><span class="o">.</span><span class="n">ok</span><span class="p">:</span>
+            <span class="n">msg</span> <span class="o">=</span> <span class="s2">&quot;Received error status code: </span><span class="si">{code}</span><span class="s2"> and message: </span><span class="si">{msg}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                <span class="n">code</span><span class="o">=</span><span class="n">r</span><span class="o">.</span><span class="n">status_code</span><span class="p">,</span> <span class="n">msg</span><span class="o">=</span><span class="n">r</span><span class="o">.</span><span class="n">text</span><span class="p">)</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="n">ClipperException</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+                <span class="s2">&quot;Model </span><span class="si">{model}</span><span class="s2"> is now linked to application </span><span class="si">{app}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                    <span class="n">model</span><span class="o">=</span><span class="n">model_name</span><span class="p">,</span> <span class="n">app</span><span class="o">=</span><span class="n">app_name</span><span class="p">))</span></div>
+
+<div class="viewcode-block" id="ClipperConnection.build_and_deploy_model"><a class="viewcode-back" href="../../clipper_connection.html#clipper_admin.ClipperConnection.build_and_deploy_model">[docs]</a>    <span class="k">def</span> <span class="nf">build_and_deploy_model</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                               <span class="n">name</span><span class="p">,</span>
+                               <span class="n">version</span><span class="p">,</span>
+                               <span class="n">input_type</span><span class="p">,</span>
+                               <span class="n">model_data_path</span><span class="p">,</span>
+                               <span class="n">base_image</span><span class="p">,</span>
+                               <span class="n">labels</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                               <span class="n">container_registry</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                               <span class="n">num_replicas</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+                               <span class="n">batch_size</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span>
+                               <span class="n">pkgs_to_install</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Build a new model container Docker image with the provided data and deploy it as</span>
+<span class="sd">        a model to Clipper.</span>
+
+<span class="sd">        This method does two things.</span>
+
+<span class="sd">        1. Builds a new Docker image from the provided base image with the local directory specified</span>
+<span class="sd">        by ``model_data_path`` copied into the image by calling</span>
+<span class="sd">        :py:meth:`clipper_admin.ClipperConnection.build_model`.</span>
+
+<span class="sd">        2. Registers and deploys a model with the specified metadata using the newly built</span>
+<span class="sd">        image by calling :py:meth:`clipper_admin.ClipperConnection.deploy_model`.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        name : str</span>
+<span class="sd">            The name of the deployed model</span>
+<span class="sd">        version : str</span>
+<span class="sd">            The version to assign this model. Versions must be unique on a per-model</span>
+<span class="sd">            basis, but may be re-used across different models.</span>
+<span class="sd">        input_type : str</span>
+<span class="sd">            The type of the request data this endpoint can process. Input type can be</span>
+<span class="sd">            one of &quot;integers&quot;, &quot;floats&quot;, &quot;doubles&quot;, &quot;bytes&quot;, or &quot;strings&quot;. See the</span>
+<span class="sd">            `User Guide &lt;http://clipper.ai/user_guide/#input-types&gt;`_ for more details</span>
+<span class="sd">            on picking the right input type for your application.</span>
+<span class="sd">        model_data_path : str</span>
+<span class="sd">            A path to a local directory. The contents of this directory will be recursively copied</span>
+<span class="sd">            into the Docker container.</span>
+<span class="sd">        base_image : str</span>
+<span class="sd">            The base Docker image to build the new model image from. This</span>
+<span class="sd">            image should contain all code necessary to run a Clipper model</span>
+<span class="sd">            container RPC client.</span>
+<span class="sd">        labels : list(str), optional</span>
+<span class="sd">            A list of strings annotating the model. These are ignored by Clipper</span>
+<span class="sd">            and used purely for user annotations.</span>
+<span class="sd">        container_registry : str, optional</span>
+<span class="sd">            The Docker container registry to push the freshly built model to. Note</span>
+<span class="sd">            that if you are running Clipper on Kubernetes, this registry must be accesible</span>
+<span class="sd">            to the Kubernetes cluster in order to fetch the container from the registry.</span>
+<span class="sd">        num_replicas : int, optional</span>
+<span class="sd">            The number of replicas of the model to create. The number of replicas</span>
+<span class="sd">            for a model can be changed at any time with</span>
+<span class="sd">            :py:meth:`clipper.ClipperConnection.set_num_replicas`.</span>
+<span class="sd">        batch_size : int, optional</span>
+<span class="sd">            The user-defined query batch size for the model. Replicas of the model will attempt</span>
+<span class="sd">            to process at most `batch_size` queries simultaneously. They may process smaller</span>
+<span class="sd">            batches if `batch_size` queries are not immediately available.</span>
+<span class="sd">            If the default value of -1 is used, Clipper will adaptively calculate the batch size for</span>
+<span class="sd">            individual replicas of this model.</span>
+<span class="sd">        pkgs_to_install : list (of strings), optional</span>
+<span class="sd">            A list of the names of packages to install, using pip, in the container.</span>
+<span class="sd">            The names must be strings.</span>
+<span class="sd">        Raises</span>
+<span class="sd">        ------</span>
+<span class="sd">        :py:exc:`clipper.UnconnectedException`</span>
+<span class="sd">        :py:exc:`clipper.ClipperException`</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">connected</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">UnconnectedException</span><span class="p">()</span>
+        <span class="n">image</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">build_model</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">version</span><span class="p">,</span> <span class="n">model_data_path</span><span class="p">,</span> <span class="n">base_image</span><span class="p">,</span>
+                                 <span class="n">container_registry</span><span class="p">,</span> <span class="n">pkgs_to_install</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">deploy_model</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">version</span><span class="p">,</span> <span class="n">input_type</span><span class="p">,</span> <span class="n">image</span><span class="p">,</span> <span class="n">labels</span><span class="p">,</span>
+                          <span class="n">num_replicas</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="ClipperConnection.build_model"><a class="viewcode-back" href="../../clipper_connection.html#clipper_admin.ClipperConnection.build_model">[docs]</a>    <span class="k">def</span> <span class="nf">build_model</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                    <span class="n">name</span><span class="p">,</span>
+                    <span class="n">version</span><span class="p">,</span>
+                    <span class="n">model_data_path</span><span class="p">,</span>
+                    <span class="n">base_image</span><span class="p">,</span>
+                    <span class="n">container_registry</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                    <span class="n">pkgs_to_install</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Build a new model container Docker image with the provided data&quot;</span>
+
+<span class="sd">        This method builds a new Docker image from the provided base image with the local directory</span>
+<span class="sd">        specified by ``model_data_path`` copied into the image. The Dockerfile that gets generated</span>
+<span class="sd">        to build the image is equivalent to the following::</span>
+
+<span class="sd">            FROM &lt;base_image&gt;</span>
+<span class="sd">            COPY &lt;model_data_path&gt; /model/</span>
+
+<span class="sd">        The newly built image is then pushed to the specified container registry. If no container</span>
+<span class="sd">        registry is specified, the image will be pushed to the default DockerHub registry. Clipper</span>
+<span class="sd">        will tag the newly built image with the tag [&lt;registry&gt;]/&lt;name&gt;:&lt;version&gt;.</span>
+
+<span class="sd">        This method can be called without being connected to a Clipper cluster.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        name : str</span>
+<span class="sd">            The name of the deployed model.</span>
+<span class="sd">        version : str</span>
+<span class="sd">            The version to assign this model. Versions must be unique on a per-model</span>
+<span class="sd">            basis, but may be re-used across different models.</span>
+<span class="sd">        model_data_path : str</span>
+<span class="sd">            A path to a local directory. The contents of this directory will be recursively copied</span>
+<span class="sd">            into the Docker container.</span>
+<span class="sd">        base_image : str</span>
+<span class="sd">            The base Docker image to build the new model image from. This</span>
+<span class="sd">            image should contain all code necessary to run a Clipper model</span>
+<span class="sd">            container RPC client.</span>
+<span class="sd">        container_registry : str, optional</span>
+<span class="sd">            The Docker container registry to push the freshly built model to. Note</span>
+<span class="sd">            that if you are running Clipper on Kubernetes, this registry must be accesible</span>
+<span class="sd">            to the Kubernetes cluster in order to fetch the container from the registry.</span>
+<span class="sd">        pkgs_to_install : list (of strings), optional</span>
+<span class="sd">            A list of the names of packages to install, using pip, in the container.</span>
+<span class="sd">            The names must be strings.</span>
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        str :</span>
+<span class="sd">            The fully specified tag of the newly built image. This will include the</span>
+<span class="sd">            container registry if specified.</span>
+
+<span class="sd">        Raises</span>
+<span class="sd">        ------</span>
+<span class="sd">        :py:exc:`clipper.ClipperException`</span>
+
+<span class="sd">        Note</span>
+<span class="sd">        ----</span>
+<span class="sd">        Both the model name and version must be valid DNS-1123 subdomains. Each must consist of</span>
+<span class="sd">        lower case alphanumeric characters, &#39;-&#39; or &#39;.&#39;, and must start and end with an alphanumeric</span>
+<span class="sd">        character (e.g. &#39;example.com&#39;, regex used for validation is</span>
+<span class="sd">        &#39;[a-z0-9]([-a-z0-9]*[a-z0-9])?\Z&#39;.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">version</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">version</span><span class="p">)</span>
+
+        <span class="n">_validate_versioned_model_name</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">version</span><span class="p">)</span>
+
+        <span class="n">run_cmd</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
+        <span class="k">if</span> <span class="n">pkgs_to_install</span><span class="p">:</span>
+            <span class="n">run_as_lst</span> <span class="o">=</span> <span class="s1">&#39;RUN apt-get -y install build-essential &amp;&amp; pip install&#39;</span><span class="o">.</span><span class="n">split</span><span class="p">(</span>
+                <span class="s1">&#39; &#39;</span><span class="p">)</span>
+            <span class="n">run_cmd</span> <span class="o">=</span> <span class="s1">&#39; &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">run_as_lst</span> <span class="o">+</span> <span class="n">pkgs_to_install</span><span class="p">)</span>
+        <span class="k">with</span> <span class="n">tempfile</span><span class="o">.</span><span class="n">NamedTemporaryFile</span><span class="p">(</span>
+                <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;w+b&quot;</span><span class="p">,</span> <span class="n">suffix</span><span class="o">=</span><span class="s2">&quot;tar&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">context_file</span><span class="p">:</span>
+            <span class="c1"># Create build context tarfile</span>
+            <span class="k">with</span> <span class="n">tarfile</span><span class="o">.</span><span class="n">TarFile</span><span class="p">(</span>
+                    <span class="n">fileobj</span><span class="o">=</span><span class="n">context_file</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;w&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">context_tar</span><span class="p">:</span>
+                <span class="n">context_tar</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">model_data_path</span><span class="p">)</span>
+                <span class="c1"># From https://stackoverflow.com/a/740854/814642</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="n">df_contents</span> <span class="o">=</span> <span class="n">StringIO</span><span class="p">(</span>
+                        <span class="nb">str</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span>
+                            <span class="s2">&quot;FROM </span><span class="si">{container_name}</span><span class="se">\n</span><span class="s2">COPY </span><span class="si">{data_path}</span><span class="s2"> /model/</span><span class="se">\n</span><span class="si">{run_command}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span>
+                            <span class="nb">format</span><span class="p">(</span>
+                                <span class="n">container_name</span><span class="o">=</span><span class="n">base_image</span><span class="p">,</span>
+                                <span class="n">data_path</span><span class="o">=</span><span class="n">model_data_path</span><span class="p">,</span>
+                                <span class="n">run_command</span><span class="o">=</span><span class="n">run_cmd</span><span class="p">)))</span>
+                    <span class="n">df_tarinfo</span> <span class="o">=</span> <span class="n">tarfile</span><span class="o">.</span><span class="n">TarInfo</span><span class="p">(</span><span class="s1">&#39;Dockerfile&#39;</span><span class="p">)</span>
+                    <span class="n">df_contents</span><span class="o">.</span><span class="n">seek</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">os</span><span class="o">.</span><span class="n">SEEK_END</span><span class="p">)</span>
+                    <span class="n">df_tarinfo</span><span class="o">.</span><span class="n">size</span> <span class="o">=</span> <span class="n">df_contents</span><span class="o">.</span><span class="n">tell</span><span class="p">()</span>
+                    <span class="n">df_contents</span><span class="o">.</span><span class="n">seek</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+                    <span class="n">context_tar</span><span class="o">.</span><span class="n">addfile</span><span class="p">(</span><span class="n">df_tarinfo</span><span class="p">,</span> <span class="n">df_contents</span><span class="p">)</span>
+                <span class="k">except</span> <span class="ne">TypeError</span><span class="p">:</span>
+                    <span class="n">df_contents</span> <span class="o">=</span> <span class="n">StringIO</span><span class="p">(</span>
+                        <span class="s2">&quot;FROM </span><span class="si">{container_name}</span><span class="se">\n</span><span class="s2">COPY </span><span class="si">{data_path}</span><span class="s2"> /model/</span><span class="se">\n</span><span class="si">{run_command}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span>
+                        <span class="nb">format</span><span class="p">(</span>
+                            <span class="n">container_name</span><span class="o">=</span><span class="n">base_image</span><span class="p">,</span>
+                            <span class="n">data_path</span><span class="o">=</span><span class="n">model_data_path</span><span class="p">,</span>
+                            <span class="n">run_command</span><span class="o">=</span><span class="n">run_cmd</span><span class="p">))</span>
+                    <span class="n">df_tarinfo</span> <span class="o">=</span> <span class="n">tarfile</span><span class="o">.</span><span class="n">TarInfo</span><span class="p">(</span><span class="s1">&#39;Dockerfile&#39;</span><span class="p">)</span>
+                    <span class="n">df_contents</span><span class="o">.</span><span class="n">seek</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">os</span><span class="o">.</span><span class="n">SEEK_END</span><span class="p">)</span>
+                    <span class="n">df_tarinfo</span><span class="o">.</span><span class="n">size</span> <span class="o">=</span> <span class="n">df_contents</span><span class="o">.</span><span class="n">tell</span><span class="p">()</span>
+                    <span class="n">df_contents</span><span class="o">.</span><span class="n">seek</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+                    <span class="n">context_tar</span><span class="o">.</span><span class="n">addfile</span><span class="p">(</span><span class="n">df_tarinfo</span><span class="p">,</span> <span class="n">df_contents</span><span class="p">)</span>
+            <span class="c1"># Exit Tarfile context manager to finish the tar file</span>
+            <span class="c1"># Seek back to beginning of file for reading</span>
+            <span class="n">context_file</span><span class="o">.</span><span class="n">seek</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+            <span class="n">image</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{name}</span><span class="s2">:</span><span class="si">{version}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span> <span class="n">version</span><span class="o">=</span><span class="n">version</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">container_registry</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">image</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{reg}</span><span class="s2">/</span><span class="si">{image}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                    <span class="n">reg</span><span class="o">=</span><span class="n">container_registry</span><span class="p">,</span> <span class="n">image</span><span class="o">=</span><span class="n">image</span><span class="p">)</span>
+            <span class="n">docker_client</span> <span class="o">=</span> <span class="n">docker</span><span class="o">.</span><span class="n">from_env</span><span class="p">()</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+                <span class="s2">&quot;Building model Docker image with model data from </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                    <span class="n">model_data_path</span><span class="p">))</span>
+            <span class="n">image_result</span><span class="p">,</span> <span class="n">build_logs</span> <span class="o">=</span> <span class="n">docker_client</span><span class="o">.</span><span class="n">images</span><span class="o">.</span><span class="n">build</span><span class="p">(</span>
+                <span class="n">fileobj</span><span class="o">=</span><span class="n">context_file</span><span class="p">,</span> <span class="n">custom_context</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">tag</span><span class="o">=</span><span class="n">image</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">b</span> <span class="ow">in</span> <span class="n">build_logs</span><span class="p">:</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="n">b</span><span class="p">)</span>
+
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Pushing model Docker image to </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">image</span><span class="p">))</span>
+        <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">docker_client</span><span class="o">.</span><span class="n">images</span><span class="o">.</span><span class="n">push</span><span class="p">(</span><span class="n">repository</span><span class="o">=</span><span class="n">image</span><span class="p">,</span> <span class="n">stream</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="n">line</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">image</span></div>
+
+<div class="viewcode-block" id="ClipperConnection.deploy_model"><a class="viewcode-back" href="../../clipper_connection.html#clipper_admin.ClipperConnection.deploy_model">[docs]</a>    <span class="k">def</span> <span class="nf">deploy_model</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                     <span class="n">name</span><span class="p">,</span>
+                     <span class="n">version</span><span class="p">,</span>
+                     <span class="n">input_type</span><span class="p">,</span>
+                     <span class="n">image</span><span class="p">,</span>
+                     <span class="n">labels</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                     <span class="n">num_replicas</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+                     <span class="n">batch_size</span><span class="o">=-</span><span class="mi">1</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Deploys the model in the provided Docker image to Clipper.</span>
+
+<span class="sd">        Deploying a model to Clipper does a few things.</span>
+
+<span class="sd">        1. It starts a set of Docker model containers running the model packaged</span>
+<span class="sd">        in the ``image`` Docker image. The number of containers it will start is dictated</span>
+<span class="sd">        by the ``num_replicas`` argument, but the way that these containers get started</span>
+<span class="sd">        depends on your choice of ``ContainerManager`` implementation.</span>
+
+<span class="sd">        2. It registers the model and version with Clipper and sets the current version of the</span>
+<span class="sd">        model to this version by internally calling</span>
+<span class="sd">        :py:meth:`clipper_admin.ClipperConnection.register_model`.</span>
+
+<span class="sd">        Notes</span>
+<span class="sd">        -----</span>
+<span class="sd">        If you want to deploy a model in some other way (e.g. a model that cannot run in a Docker</span>
+<span class="sd">        container for some reason), you can start the model manually or with an external tool and</span>
+<span class="sd">        call ``register_model`` directly.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        name : str</span>
+<span class="sd">            The name of the deployed model</span>
+<span class="sd">        version : str</span>
+<span class="sd">            The version to assign this model. Versions must be unique on a per-model</span>
+<span class="sd">            basis, but may be re-used across different models.</span>
+<span class="sd">        input_type : str</span>
+<span class="sd">            The type of the request data this endpoint can process. Input type can be</span>
+<span class="sd">            one of &quot;integers&quot;, &quot;floats&quot;, &quot;doubles&quot;, &quot;bytes&quot;, or &quot;strings&quot;. See the</span>
+<span class="sd">            `User Guide &lt;http://clipper.ai/user_guide/#input-types&gt;`_ for more details</span>
+<span class="sd">            on picking the right input type for your application.</span>
+<span class="sd">        image : str</span>
+<span class="sd">             The fully specified Docker image to deploy. If using a custom</span>
+<span class="sd">             registry, the registry name must be prepended to the image. For example,</span>
+<span class="sd">             if your Docker image is stored in the quay.io registry, you should specify</span>
+<span class="sd">             the image argument as</span>
+<span class="sd">             &quot;quay.io/my_namespace/image_name:tag&quot;. The image name and tag are independent of</span>
+<span class="sd">             the ``name`` and ``version`` arguments, and can be set to whatever you want.</span>
+<span class="sd">        labels : list(str), optional</span>
+<span class="sd">            A list of strings annotating the model. These are ignored by Clipper</span>
+<span class="sd">            and used purely for user annotations.</span>
+<span class="sd">        num_replicas : int, optional</span>
+<span class="sd">            The number of replicas of the model to create. The number of replicas</span>
+<span class="sd">            for a model can be changed at any time with</span>
+<span class="sd">            :py:meth:`clipper.ClipperConnection.set_num_replicas`.</span>
+<span class="sd">        batch_size : int, optional</span>
+<span class="sd">            The user-defined query batch size for the model. Replicas of the model will attempt</span>
+<span class="sd">            to process at most `batch_size` queries simultaneously. They may process smaller</span>
+<span class="sd">            batches if `batch_size` queries are not immediately available.</span>
+<span class="sd">            If the default value of -1 is used, Clipper will adaptively calculate the batch size for</span>
+<span class="sd">            individual replicas of this model.</span>
+
+<span class="sd">        Raises</span>
+<span class="sd">        ------</span>
+<span class="sd">        :py:exc:`clipper.UnconnectedException`</span>
+<span class="sd">        :py:exc:`clipper.ClipperException`</span>
+
+<span class="sd">        Note</span>
+<span class="sd">        ----</span>
+<span class="sd">        Both the model name and version must be valid DNS-1123 subdomains. Each must consist of</span>
+<span class="sd">        lower case alphanumeric characters, &#39;-&#39; or &#39;.&#39;, and must start and end with an alphanumeric</span>
+<span class="sd">        character (e.g. &#39;example.com&#39;, regex used for validation is</span>
+<span class="sd">        &#39;[a-z0-9]([-a-z0-9]*[a-z0-9])?\Z&#39;.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">connected</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">UnconnectedException</span><span class="p">()</span>
+        <span class="n">version</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">version</span><span class="p">)</span>
+        <span class="n">_validate_versioned_model_name</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">version</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cm</span><span class="o">.</span><span class="n">deploy_model</span><span class="p">(</span>
+            <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span>
+            <span class="n">version</span><span class="o">=</span><span class="n">version</span><span class="p">,</span>
+            <span class="n">input_type</span><span class="o">=</span><span class="n">input_type</span><span class="p">,</span>
+            <span class="n">image</span><span class="o">=</span><span class="n">image</span><span class="p">,</span>
+            <span class="n">num_replicas</span><span class="o">=</span><span class="n">num_replicas</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">register_model</span><span class="p">(</span>
+            <span class="n">name</span><span class="p">,</span>
+            <span class="n">version</span><span class="p">,</span>
+            <span class="n">input_type</span><span class="p">,</span>
+            <span class="n">image</span><span class="o">=</span><span class="n">image</span><span class="p">,</span>
+            <span class="n">labels</span><span class="o">=</span><span class="n">labels</span><span class="p">,</span>
+            <span class="n">batch_size</span><span class="o">=</span><span class="n">batch_size</span><span class="p">)</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Done deploying model </span><span class="si">{name}</span><span class="s2">:</span><span class="si">{version}</span><span class="s2">.&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+            <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span> <span class="n">version</span><span class="o">=</span><span class="n">version</span><span class="p">))</span></div>
+
+<div class="viewcode-block" id="ClipperConnection.register_model"><a class="viewcode-back" href="../../clipper_connection.html#clipper_admin.ClipperConnection.register_model">[docs]</a>    <span class="k">def</span> <span class="nf">register_model</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                       <span class="n">name</span><span class="p">,</span>
+                       <span class="n">version</span><span class="p">,</span>
+                       <span class="n">input_type</span><span class="p">,</span>
+                       <span class="n">image</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                       <span class="n">labels</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                       <span class="n">batch_size</span><span class="o">=-</span><span class="mi">1</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Registers a new model version with Clipper.</span>
+
+<span class="sd">        This method does not launch any model containers, it only registers the model description</span>
+<span class="sd">        (metadata such as name, version, and input type) with Clipper. A model must be registered</span>
+<span class="sd">        with Clipper before it can be linked to an application.</span>
+
+<span class="sd">        You should rarely have to use this method directly. Using one the Clipper deployer</span>
+<span class="sd">        methods in :py:mod:`clipper_admin.deployers` or calling ``build_and_deploy_model`` or</span>
+<span class="sd">        ``deploy_model`` will automatically register your model with Clipper.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        name : str</span>
+<span class="sd">            The name of the deployed model</span>
+<span class="sd">        version : str</span>
+<span class="sd">            The version to assign this model. Versions must be unique on a per-model</span>
+<span class="sd">            basis, but may be re-used across different models.</span>
+<span class="sd">        input_type : str</span>
+<span class="sd">            The type of the request data this endpoint can process. Input type can be</span>
+<span class="sd">            one of &quot;integers&quot;, &quot;floats&quot;, &quot;doubles&quot;, &quot;bytes&quot;, or &quot;strings&quot;. See the</span>
+<span class="sd">            `User Guide &lt;http://clipper.ai/user_guide/#input-types&gt;`_ for more details</span>
+<span class="sd">            on picking the right input type for your application.</span>
+<span class="sd">        image : str, optional</span>
+<span class="sd">            A docker image name. If provided, the image will be recorded as part of the</span>
+<span class="sd">            model descrtipin in Clipper when registering the model but this method will</span>
+<span class="sd">            make no attempt to launch any containers with this image.</span>
+<span class="sd">        labels : list(str), optional</span>
+<span class="sd">            A list of strings annotating the model. These are ignored by Clipper</span>
+<span class="sd">            and used purely for user annotations.</span>
+<span class="sd">        batch_size : int, optional</span>
+<span class="sd">            The user-defined query batch size for the model. Replicas of the model will attempt</span>
+<span class="sd">            to process at most `batch_size` queries simultaneously. They may process smaller</span>
+<span class="sd">            batches if `batch_size` queries are not immediately available.</span>
+<span class="sd">            If the default value of -1 is used, Clipper will adaptively calculate the batch size for</span>
+<span class="sd">            individual replicas of this model.</span>
+
+<span class="sd">        Raises</span>
+<span class="sd">        ------</span>
+<span class="sd">        :py:exc:`clipper.UnconnectedException`</span>
+<span class="sd">        :py:exc:`clipper.ClipperException`</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">connected</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">UnconnectedException</span><span class="p">()</span>
+        <span class="n">version</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">version</span><span class="p">)</span>
+        <span class="n">url</span> <span class="o">=</span> <span class="s2">&quot;http://</span><span class="si">{host}</span><span class="s2">/admin/add_model&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+            <span class="n">host</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">cm</span><span class="o">.</span><span class="n">get_admin_addr</span><span class="p">())</span>
+        <span class="k">if</span> <span class="n">image</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">image</span> <span class="o">=</span> <span class="n">CONTAINERLESS_MODEL_IMAGE</span>
+        <span class="k">if</span> <span class="n">labels</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">labels</span> <span class="o">=</span> <span class="n">DEFAULT_LABEL</span>
+        <span class="n">req_json</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">({</span>
+            <span class="s2">&quot;model_name&quot;</span><span class="p">:</span> <span class="n">name</span><span class="p">,</span>
+            <span class="s2">&quot;model_version&quot;</span><span class="p">:</span> <span class="n">version</span><span class="p">,</span>
+            <span class="s2">&quot;labels&quot;</span><span class="p">:</span> <span class="n">labels</span><span class="p">,</span>
+            <span class="s2">&quot;input_type&quot;</span><span class="p">:</span> <span class="n">input_type</span><span class="p">,</span>
+            <span class="s2">&quot;container_name&quot;</span><span class="p">:</span> <span class="n">image</span><span class="p">,</span>
+            <span class="s2">&quot;model_data_path&quot;</span><span class="p">:</span> <span class="s2">&quot;DEPRECATED&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;batch_size&quot;</span><span class="p">:</span> <span class="n">batch_size</span>
+        <span class="p">})</span>
+
+        <span class="n">headers</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;Content-type&#39;</span><span class="p">:</span> <span class="s1">&#39;application/json&#39;</span><span class="p">}</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="n">req_json</span><span class="p">)</span>
+        <span class="n">r</span> <span class="o">=</span> <span class="n">requests</span><span class="o">.</span><span class="n">post</span><span class="p">(</span><span class="n">url</span><span class="p">,</span> <span class="n">headers</span><span class="o">=</span><span class="n">headers</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="n">req_json</span><span class="p">)</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="n">r</span><span class="o">.</span><span class="n">text</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">r</span><span class="o">.</span><span class="n">status_code</span> <span class="o">!=</span> <span class="n">requests</span><span class="o">.</span><span class="n">codes</span><span class="o">.</span><span class="n">ok</span><span class="p">:</span>
+            <span class="n">msg</span> <span class="o">=</span> <span class="s2">&quot;Received error status code: </span><span class="si">{code}</span><span class="s2"> and message: </span><span class="si">{msg}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                <span class="n">code</span><span class="o">=</span><span class="n">r</span><span class="o">.</span><span class="n">status_code</span><span class="p">,</span> <span class="n">msg</span><span class="o">=</span><span class="n">r</span><span class="o">.</span><span class="n">text</span><span class="p">)</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="n">ClipperException</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+                <span class="s2">&quot;Successfully registered model </span><span class="si">{name}</span><span class="s2">:</span><span class="si">{version}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                    <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span> <span class="n">version</span><span class="o">=</span><span class="n">version</span><span class="p">))</span></div>
+
+<div class="viewcode-block" id="ClipperConnection.get_current_model_version"><a class="viewcode-back" href="../../clipper_connection.html#clipper_admin.ClipperConnection.get_current_model_version">[docs]</a>    <span class="k">def</span> <span class="nf">get_current_model_version</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Get the current model version for the specified model.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        name : str</span>
+<span class="sd">            The name of the model</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        str</span>
+<span class="sd">            The current model version</span>
+
+<span class="sd">        Raises</span>
+<span class="sd">        ------</span>
+<span class="sd">        :py:exc:`clipper.UnconnectedException`</span>
+<span class="sd">        :py:exc:`clipper.ClipperException`</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">connected</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">UnconnectedException</span><span class="p">()</span>
+        <span class="n">version</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="n">model_info</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_all_models</span><span class="p">(</span><span class="n">verbose</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">m</span> <span class="ow">in</span> <span class="n">model_info</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">m</span><span class="p">[</span><span class="s2">&quot;model_name&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="n">name</span> <span class="ow">and</span> <span class="n">m</span><span class="p">[</span><span class="s2">&quot;is_current_version&quot;</span><span class="p">]:</span>
+                <span class="n">version</span> <span class="o">=</span> <span class="n">m</span><span class="p">[</span><span class="s2">&quot;model_version&quot;</span><span class="p">]</span>
+                <span class="k">break</span>
+        <span class="k">if</span> <span class="n">version</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">ClipperException</span><span class="p">(</span>
+                <span class="s2">&quot;No versions of model </span><span class="si">{}</span><span class="s2"> registered with Clipper&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">name</span><span class="p">))</span>
+        <span class="k">return</span> <span class="n">version</span></div>
+
+<div class="viewcode-block" id="ClipperConnection.get_num_replicas"><a class="viewcode-back" href="../../clipper_connection.html#clipper_admin.ClipperConnection.get_num_replicas">[docs]</a>    <span class="k">def</span> <span class="nf">get_num_replicas</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">version</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Gets the current number of model container replicas for a model.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        name : str</span>
+<span class="sd">            The name of the model</span>
+<span class="sd">        version : str, optional</span>
+<span class="sd">            The version of the model. If no version is provided,</span>
+<span class="sd">            the currently deployed version will be used.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        int</span>
+<span class="sd">            The number of active replicas</span>
+
+<span class="sd">        Raises</span>
+<span class="sd">        ------</span>
+<span class="sd">        :py:exc:`clipper.UnconnectedException`</span>
+<span class="sd">        :py:exc:`clipper.ClipperException`</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">connected</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">UnconnectedException</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">version</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">version</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_current_model_version</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">version</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">version</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">cm</span><span class="o">.</span><span class="n">get_num_replicas</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">version</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="ClipperConnection.set_num_replicas"><a class="viewcode-back" href="../../clipper_connection.html#clipper_admin.ClipperConnection.set_num_replicas">[docs]</a>    <span class="k">def</span> <span class="nf">set_num_replicas</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">num_replicas</span><span class="p">,</span> <span class="n">version</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Sets the total number of active replicas for a model.</span>
+
+<span class="sd">        If there are more than the current number of replicas</span>
+<span class="sd">        currently allocated, this will remove replicas. If there are</span>
+<span class="sd">        less, this will add replicas.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        name : str</span>
+<span class="sd">            The name of the model</span>
+<span class="sd">        version : str, optional</span>
+<span class="sd">            The version of the model. If no version is provided,</span>
+<span class="sd">            the currently deployed version will be used.</span>
+<span class="sd">        num_replicas : int, optional</span>
+<span class="sd">            The desired number of replicas.</span>
+
+<span class="sd">        Raises</span>
+<span class="sd">        ------</span>
+<span class="sd">        :py:exc:`clipper.UnconnectedException`</span>
+<span class="sd">        :py:exc:`clipper.ClipperException`</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">connected</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">UnconnectedException</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">version</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">version</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_current_model_version</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">version</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">version</span><span class="p">)</span>
+        <span class="n">model_data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_model_info</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">version</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">model_data</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">input_type</span> <span class="o">=</span> <span class="n">model_data</span><span class="p">[</span><span class="s2">&quot;input_type&quot;</span><span class="p">]</span>
+            <span class="n">image</span> <span class="o">=</span> <span class="n">model_data</span><span class="p">[</span><span class="s2">&quot;container_name&quot;</span><span class="p">]</span>
+            <span class="k">if</span> <span class="n">image</span> <span class="o">!=</span> <span class="n">CONTAINERLESS_MODEL_IMAGE</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">cm</span><span class="o">.</span><span class="n">set_num_replicas</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">version</span><span class="p">,</span> <span class="n">input_type</span><span class="p">,</span> <span class="n">image</span><span class="p">,</span>
+                                         <span class="n">num_replicas</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">msg</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;Cannot resize the replica set for containerless model &quot;</span>
+                       <span class="s2">&quot;</span><span class="si">{name}</span><span class="s2">:</span><span class="si">{version}</span><span class="s2">&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                           <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span> <span class="n">version</span><span class="o">=</span><span class="n">version</span><span class="p">)</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+                <span class="k">raise</span> <span class="n">ClipperException</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">msg</span> <span class="o">=</span> <span class="s2">&quot;Cannot add container for non-registered model </span><span class="si">{name}</span><span class="s2">:</span><span class="si">{version}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span> <span class="n">version</span><span class="o">=</span><span class="n">version</span><span class="p">)</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="n">ClipperException</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="ClipperConnection.get_all_apps"><a class="viewcode-back" href="../../clipper_connection.html#clipper_admin.ClipperConnection.get_all_apps">[docs]</a>    <span class="k">def</span> <span class="nf">get_all_apps</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Gets information about all applications registered with Clipper.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        verbose : bool</span>
+<span class="sd">            If set to False, the returned list contains the apps&#39; names.</span>
+<span class="sd">            If set to True, the list contains application info dictionaries.</span>
+<span class="sd">            These dictionaries have the same attribute name-value pairs that were</span>
+<span class="sd">            provided to :py:meth:`clipper_admin.ClipperConnection.register_application`.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        list</span>
+<span class="sd">            Returns a list of information about all apps registered to Clipper.</span>
+<span class="sd">            If no apps are registered with Clipper, an empty list is returned.</span>
+
+<span class="sd">        Raises</span>
+<span class="sd">        ------</span>
+<span class="sd">        :py:exc:`clipper.UnconnectedException`</span>
+<span class="sd">        :py:exc:`clipper.ClipperException`</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">connected</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">UnconnectedException</span><span class="p">()</span>
+        <span class="n">url</span> <span class="o">=</span> <span class="s2">&quot;http://</span><span class="si">{host}</span><span class="s2">/admin/get_all_applications&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+            <span class="n">host</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">cm</span><span class="o">.</span><span class="n">get_admin_addr</span><span class="p">())</span>
+        <span class="n">req_json</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">({</span><span class="s2">&quot;verbose&quot;</span><span class="p">:</span> <span class="n">verbose</span><span class="p">})</span>
+        <span class="n">headers</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;Content-type&#39;</span><span class="p">:</span> <span class="s1">&#39;application/json&#39;</span><span class="p">}</span>
+        <span class="n">r</span> <span class="o">=</span> <span class="n">requests</span><span class="o">.</span><span class="n">post</span><span class="p">(</span><span class="n">url</span><span class="p">,</span> <span class="n">headers</span><span class="o">=</span><span class="n">headers</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="n">req_json</span><span class="p">)</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="n">r</span><span class="o">.</span><span class="n">text</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">r</span><span class="o">.</span><span class="n">status_code</span> <span class="o">==</span> <span class="n">requests</span><span class="o">.</span><span class="n">codes</span><span class="o">.</span><span class="n">ok</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">r</span><span class="o">.</span><span class="n">json</span><span class="p">()</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">msg</span> <span class="o">=</span> <span class="s2">&quot;Received error status code: </span><span class="si">{code}</span><span class="s2"> and message: </span><span class="si">{msg}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                <span class="n">code</span><span class="o">=</span><span class="n">r</span><span class="o">.</span><span class="n">status_code</span><span class="p">,</span> <span class="n">msg</span><span class="o">=</span><span class="n">r</span><span class="o">.</span><span class="n">text</span><span class="p">)</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="n">ClipperException</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="ClipperConnection.get_app_info"><a class="viewcode-back" href="../../clipper_connection.html#clipper_admin.ClipperConnection.get_app_info">[docs]</a>    <span class="k">def</span> <span class="nf">get_app_info</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Gets detailed information about a registered application.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        name : str</span>
+<span class="sd">            The name of the application to look up</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        dict</span>
+<span class="sd">            Returns a dictionary with the specified application&#39;s info. This</span>
+<span class="sd">            will contain the attribute name-value pairs that were provided to</span>
+<span class="sd">            :py:meth:`clipper_admin.ClipperConnection.register_application`.</span>
+<span class="sd">            If no application with name ``name`` is</span>
+<span class="sd">            registered with Clipper, None is returned.</span>
+
+<span class="sd">        Raises</span>
+<span class="sd">        ------</span>
+<span class="sd">        :py:exc:`clipper.UnconnectedException`</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">connected</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">UnconnectedException</span><span class="p">()</span>
+        <span class="n">url</span> <span class="o">=</span> <span class="s2">&quot;http://</span><span class="si">{host}</span><span class="s2">/admin/get_application&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+            <span class="n">host</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">cm</span><span class="o">.</span><span class="n">get_admin_addr</span><span class="p">())</span>
+        <span class="n">req_json</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">({</span><span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="n">name</span><span class="p">})</span>
+        <span class="n">headers</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;Content-type&#39;</span><span class="p">:</span> <span class="s1">&#39;application/json&#39;</span><span class="p">}</span>
+        <span class="n">r</span> <span class="o">=</span> <span class="n">requests</span><span class="o">.</span><span class="n">post</span><span class="p">(</span><span class="n">url</span><span class="p">,</span> <span class="n">headers</span><span class="o">=</span><span class="n">headers</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="n">req_json</span><span class="p">)</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="n">r</span><span class="o">.</span><span class="n">text</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">r</span><span class="o">.</span><span class="n">status_code</span> <span class="o">==</span> <span class="n">requests</span><span class="o">.</span><span class="n">codes</span><span class="o">.</span><span class="n">ok</span><span class="p">:</span>
+            <span class="n">app_info</span> <span class="o">=</span> <span class="n">r</span><span class="o">.</span><span class="n">json</span><span class="p">()</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">app_info</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+                    <span class="s2">&quot;Application </span><span class="si">{}</span><span class="s2"> is not registered with Clipper&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                        <span class="n">name</span><span class="p">))</span>
+                <span class="k">return</span> <span class="kc">None</span>
+            <span class="k">return</span> <span class="n">app_info</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">msg</span> <span class="o">=</span> <span class="s2">&quot;Received error status code: </span><span class="si">{code}</span><span class="s2"> and message: </span><span class="si">{msg}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                <span class="n">code</span><span class="o">=</span><span class="n">r</span><span class="o">.</span><span class="n">status_code</span><span class="p">,</span> <span class="n">msg</span><span class="o">=</span><span class="n">r</span><span class="o">.</span><span class="n">text</span><span class="p">)</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="n">ClipperException</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="ClipperConnection.get_linked_models"><a class="viewcode-back" href="../../clipper_connection.html#clipper_admin.ClipperConnection.get_linked_models">[docs]</a>    <span class="k">def</span> <span class="nf">get_linked_models</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">app_name</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Retrieves the models linked to the specified application.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        app_name : str</span>
+<span class="sd">            The name of the application</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        list</span>
+<span class="sd">            Returns a list of the names of models linked to the app.</span>
+<span class="sd">            If no models are linked to the specified app, None is returned.</span>
+
+<span class="sd">        Raises</span>
+<span class="sd">        ------</span>
+<span class="sd">        :py:exc:`clipper.UnconnectedException`</span>
+<span class="sd">        :py:exc:`clipper.ClipperException`</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">connected</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">UnconnectedException</span><span class="p">()</span>
+        <span class="n">url</span> <span class="o">=</span> <span class="s2">&quot;http://</span><span class="si">{host}</span><span class="s2">/admin/get_linked_models&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+            <span class="n">host</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">cm</span><span class="o">.</span><span class="n">get_admin_addr</span><span class="p">())</span>
+        <span class="n">req_json</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">({</span><span class="s2">&quot;app_name&quot;</span><span class="p">:</span> <span class="n">app_name</span><span class="p">})</span>
+        <span class="n">headers</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;Content-type&#39;</span><span class="p">:</span> <span class="s1">&#39;application/json&#39;</span><span class="p">}</span>
+        <span class="n">r</span> <span class="o">=</span> <span class="n">requests</span><span class="o">.</span><span class="n">post</span><span class="p">(</span><span class="n">url</span><span class="p">,</span> <span class="n">headers</span><span class="o">=</span><span class="n">headers</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="n">req_json</span><span class="p">)</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="n">r</span><span class="o">.</span><span class="n">text</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">r</span><span class="o">.</span><span class="n">status_code</span> <span class="o">==</span> <span class="n">requests</span><span class="o">.</span><span class="n">codes</span><span class="o">.</span><span class="n">ok</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">r</span><span class="o">.</span><span class="n">json</span><span class="p">()</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">msg</span> <span class="o">=</span> <span class="s2">&quot;Received error status code: </span><span class="si">{code}</span><span class="s2"> and message: </span><span class="si">{msg}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                <span class="n">code</span><span class="o">=</span><span class="n">r</span><span class="o">.</span><span class="n">status_code</span><span class="p">,</span> <span class="n">msg</span><span class="o">=</span><span class="n">r</span><span class="o">.</span><span class="n">text</span><span class="p">)</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="n">ClipperException</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="ClipperConnection.get_all_models"><a class="viewcode-back" href="../../clipper_connection.html#clipper_admin.ClipperConnection.get_all_models">[docs]</a>    <span class="k">def</span> <span class="nf">get_all_models</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Gets information about all models registered with Clipper.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        verbose : bool</span>
+<span class="sd">            If set to False, the returned list contains the models&#39; names.</span>
+<span class="sd">            If set to True, the list contains model info dictionaries.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        list</span>
+<span class="sd">            Returns a list of information about all apps registered to Clipper.</span>
+<span class="sd">            If no models are registered with Clipper, an empty list is returned.</span>
+
+<span class="sd">        Raises</span>
+<span class="sd">        ------</span>
+<span class="sd">        :py:exc:`clipper.UnconnectedException`</span>
+<span class="sd">        :py:exc:`clipper.ClipperException`</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">connected</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">UnconnectedException</span><span class="p">()</span>
+        <span class="n">url</span> <span class="o">=</span> <span class="s2">&quot;http://</span><span class="si">{host}</span><span class="s2">/admin/get_all_models&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+            <span class="n">host</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">cm</span><span class="o">.</span><span class="n">get_admin_addr</span><span class="p">())</span>
+        <span class="n">req_json</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">({</span><span class="s2">&quot;verbose&quot;</span><span class="p">:</span> <span class="n">verbose</span><span class="p">})</span>
+        <span class="n">headers</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;Content-type&#39;</span><span class="p">:</span> <span class="s1">&#39;application/json&#39;</span><span class="p">}</span>
+        <span class="n">r</span> <span class="o">=</span> <span class="n">requests</span><span class="o">.</span><span class="n">post</span><span class="p">(</span><span class="n">url</span><span class="p">,</span> <span class="n">headers</span><span class="o">=</span><span class="n">headers</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="n">req_json</span><span class="p">)</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="n">r</span><span class="o">.</span><span class="n">text</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">r</span><span class="o">.</span><span class="n">status_code</span> <span class="o">==</span> <span class="n">requests</span><span class="o">.</span><span class="n">codes</span><span class="o">.</span><span class="n">ok</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">r</span><span class="o">.</span><span class="n">json</span><span class="p">()</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">msg</span> <span class="o">=</span> <span class="s2">&quot;Received error status code: </span><span class="si">{code}</span><span class="s2"> and message: </span><span class="si">{msg}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                <span class="n">code</span><span class="o">=</span><span class="n">r</span><span class="o">.</span><span class="n">status_code</span><span class="p">,</span> <span class="n">msg</span><span class="o">=</span><span class="n">r</span><span class="o">.</span><span class="n">text</span><span class="p">)</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="n">ClipperException</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="ClipperConnection.get_model_info"><a class="viewcode-back" href="../../clipper_connection.html#clipper_admin.ClipperConnection.get_model_info">[docs]</a>    <span class="k">def</span> <span class="nf">get_model_info</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">version</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Gets detailed information about a registered model.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        model_name : str</span>
+<span class="sd">            The name of the model to look up</span>
+<span class="sd">        model_version : int</span>
+<span class="sd">            The version of the model to look up</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        dict</span>
+<span class="sd">            Returns a dictionary with the specified model&#39;s info.</span>
+<span class="sd">            If no model with name `model_name@model_version` is</span>
+<span class="sd">            registered with Clipper, None is returned.</span>
+
+<span class="sd">        Raises</span>
+<span class="sd">        ------</span>
+<span class="sd">        :py:exc:`clipper.UnconnectedException`</span>
+<span class="sd">        :py:exc:`clipper.ClipperException`</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">connected</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">UnconnectedException</span><span class="p">()</span>
+        <span class="n">version</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">version</span><span class="p">)</span>
+        <span class="n">url</span> <span class="o">=</span> <span class="s2">&quot;http://</span><span class="si">{host}</span><span class="s2">/admin/get_model&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+            <span class="n">host</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">cm</span><span class="o">.</span><span class="n">get_admin_addr</span><span class="p">())</span>
+        <span class="n">req_json</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">({</span><span class="s2">&quot;model_name&quot;</span><span class="p">:</span> <span class="n">name</span><span class="p">,</span> <span class="s2">&quot;model_version&quot;</span><span class="p">:</span> <span class="n">version</span><span class="p">})</span>
+        <span class="n">headers</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;Content-type&#39;</span><span class="p">:</span> <span class="s1">&#39;application/json&#39;</span><span class="p">}</span>
+        <span class="n">r</span> <span class="o">=</span> <span class="n">requests</span><span class="o">.</span><span class="n">post</span><span class="p">(</span><span class="n">url</span><span class="p">,</span> <span class="n">headers</span><span class="o">=</span><span class="n">headers</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="n">req_json</span><span class="p">)</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="n">r</span><span class="o">.</span><span class="n">text</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">r</span><span class="o">.</span><span class="n">status_code</span> <span class="o">==</span> <span class="n">requests</span><span class="o">.</span><span class="n">codes</span><span class="o">.</span><span class="n">ok</span><span class="p">:</span>
+            <span class="n">model_info</span> <span class="o">=</span> <span class="n">r</span><span class="o">.</span><span class="n">json</span><span class="p">()</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">model_info</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+                    <span class="s2">&quot;Model </span><span class="si">{name}</span><span class="s2">:</span><span class="si">{version}</span><span class="s2"> is not registered with Clipper.&quot;</span><span class="o">.</span>
+                    <span class="nb">format</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span> <span class="n">version</span><span class="o">=</span><span class="n">version</span><span class="p">))</span>
+                <span class="k">return</span> <span class="kc">None</span>
+            <span class="k">return</span> <span class="n">model_info</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">msg</span> <span class="o">=</span> <span class="s2">&quot;Received error status code: </span><span class="si">{code}</span><span class="s2"> and message: </span><span class="si">{msg}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                <span class="n">code</span><span class="o">=</span><span class="n">r</span><span class="o">.</span><span class="n">status_code</span><span class="p">,</span> <span class="n">msg</span><span class="o">=</span><span class="n">r</span><span class="o">.</span><span class="n">text</span><span class="p">)</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="n">ClipperException</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="ClipperConnection.get_all_model_replicas"><a class="viewcode-back" href="../../clipper_connection.html#clipper_admin.ClipperConnection.get_all_model_replicas">[docs]</a>    <span class="k">def</span> <span class="nf">get_all_model_replicas</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Gets information about all model containers registered with Clipper.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        verbose : bool</span>
+<span class="sd">            If set to False, the returned list contains the apps&#39; names.</span>
+<span class="sd">            If set to True, the list contains container info dictionaries.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        list</span>
+<span class="sd">            Returns a list of information about all model containers known to Clipper.</span>
+<span class="sd">            If no containers are registered with Clipper, an empty list is returned.</span>
+
+<span class="sd">        Raises</span>
+<span class="sd">        ------</span>
+<span class="sd">        :py:exc:`clipper.UnconnectedException`</span>
+<span class="sd">        :py:exc:`clipper.ClipperException`</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">connected</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">UnconnectedException</span><span class="p">()</span>
+        <span class="n">url</span> <span class="o">=</span> <span class="s2">&quot;http://</span><span class="si">{host}</span><span class="s2">/admin/get_all_containers&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+            <span class="n">host</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">cm</span><span class="o">.</span><span class="n">get_admin_addr</span><span class="p">())</span>
+        <span class="n">req_json</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">({</span><span class="s2">&quot;verbose&quot;</span><span class="p">:</span> <span class="n">verbose</span><span class="p">})</span>
+        <span class="n">headers</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;Content-type&#39;</span><span class="p">:</span> <span class="s1">&#39;application/json&#39;</span><span class="p">}</span>
+        <span class="n">r</span> <span class="o">=</span> <span class="n">requests</span><span class="o">.</span><span class="n">post</span><span class="p">(</span><span class="n">url</span><span class="p">,</span> <span class="n">headers</span><span class="o">=</span><span class="n">headers</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="n">req_json</span><span class="p">)</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="n">r</span><span class="o">.</span><span class="n">text</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">r</span><span class="o">.</span><span class="n">status_code</span> <span class="o">==</span> <span class="n">requests</span><span class="o">.</span><span class="n">codes</span><span class="o">.</span><span class="n">ok</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">r</span><span class="o">.</span><span class="n">json</span><span class="p">()</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">msg</span> <span class="o">=</span> <span class="s2">&quot;Received error status code: </span><span class="si">{code}</span><span class="s2"> and message: </span><span class="si">{msg}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                <span class="n">code</span><span class="o">=</span><span class="n">r</span><span class="o">.</span><span class="n">status_code</span><span class="p">,</span> <span class="n">msg</span><span class="o">=</span><span class="n">r</span><span class="o">.</span><span class="n">text</span><span class="p">)</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="n">ClipperException</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="ClipperConnection.get_model_replica_info"><a class="viewcode-back" href="../../clipper_connection.html#clipper_admin.ClipperConnection.get_model_replica_info">[docs]</a>    <span class="k">def</span> <span class="nf">get_model_replica_info</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">version</span><span class="p">,</span> <span class="n">replica_id</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Gets detailed information about a registered container.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        name : str</span>
+<span class="sd">            The name of the container to look up</span>
+<span class="sd">        version : int</span>
+<span class="sd">            The version of the container to look up</span>
+<span class="sd">        replica_id : int</span>
+<span class="sd">            The container replica to look up</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        dict</span>
+<span class="sd">            A dictionary with the specified container&#39;s info.</span>
+<span class="sd">            If no corresponding container is registered with Clipper, None is returned.</span>
+
+<span class="sd">        Raises</span>
+<span class="sd">        ------</span>
+<span class="sd">        :py:exc:`clipper.UnconnectedException`</span>
+<span class="sd">        :py:exc:`clipper.ClipperException`</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">connected</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">UnconnectedException</span><span class="p">()</span>
+        <span class="n">version</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">version</span><span class="p">)</span>
+        <span class="n">url</span> <span class="o">=</span> <span class="s2">&quot;http://</span><span class="si">{host}</span><span class="s2">/admin/get_container&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+            <span class="n">host</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">cm</span><span class="o">.</span><span class="n">get_admin_addr</span><span class="p">())</span>
+        <span class="n">req_json</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">({</span>
+            <span class="s2">&quot;model_name&quot;</span><span class="p">:</span> <span class="n">name</span><span class="p">,</span>
+            <span class="s2">&quot;model_version&quot;</span><span class="p">:</span> <span class="n">version</span><span class="p">,</span>
+            <span class="s2">&quot;replica_id&quot;</span><span class="p">:</span> <span class="n">replica_id</span><span class="p">,</span>
+        <span class="p">})</span>
+        <span class="n">headers</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;Content-type&#39;</span><span class="p">:</span> <span class="s1">&#39;application/json&#39;</span><span class="p">}</span>
+        <span class="n">r</span> <span class="o">=</span> <span class="n">requests</span><span class="o">.</span><span class="n">post</span><span class="p">(</span><span class="n">url</span><span class="p">,</span> <span class="n">headers</span><span class="o">=</span><span class="n">headers</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="n">req_json</span><span class="p">)</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="n">r</span><span class="o">.</span><span class="n">text</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">r</span><span class="o">.</span><span class="n">status_code</span> <span class="o">==</span> <span class="n">requests</span><span class="o">.</span><span class="n">codes</span><span class="o">.</span><span class="n">ok</span><span class="p">:</span>
+            <span class="n">model_rep_info</span> <span class="o">=</span> <span class="n">r</span><span class="o">.</span><span class="n">json</span><span class="p">()</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">model_rep_info</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+                    <span class="s2">&quot;No model replica with ID </span><span class="si">{rep_id}</span><span class="s2"> found for model </span><span class="si">{name}</span><span class="s2">:</span><span class="si">{version}</span><span class="s2">&quot;</span><span class="o">.</span>
+                    <span class="nb">format</span><span class="p">(</span><span class="n">rep_id</span><span class="o">=</span><span class="n">replica_id</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span> <span class="n">version</span><span class="o">=</span><span class="n">version</span><span class="p">))</span>
+                <span class="k">return</span> <span class="kc">None</span>
+            <span class="k">return</span> <span class="n">model_rep_info</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">msg</span> <span class="o">=</span> <span class="s2">&quot;Received error status code: </span><span class="si">{code}</span><span class="s2"> and message: </span><span class="si">{msg}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                <span class="n">code</span><span class="o">=</span><span class="n">r</span><span class="o">.</span><span class="n">status_code</span><span class="p">,</span> <span class="n">msg</span><span class="o">=</span><span class="n">r</span><span class="o">.</span><span class="n">text</span><span class="p">)</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="n">ClipperException</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="ClipperConnection.get_clipper_logs"><a class="viewcode-back" href="../../clipper_connection.html#clipper_admin.ClipperConnection.get_clipper_logs">[docs]</a>    <span class="k">def</span> <span class="nf">get_clipper_logs</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">logging_dir</span><span class="o">=</span><span class="s2">&quot;clipper_logs/&quot;</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Download the logs from all Clipper docker containers.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        logging_dir : str, optional</span>
+<span class="sd">            The directory to save the downloaded logs. If the directory does not</span>
+<span class="sd">            exist, it will be created.</span>
+
+<span class="sd">        Raises</span>
+<span class="sd">        ------</span>
+<span class="sd">        :py:exc:`clipper.UnconnectedException`</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">connected</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">UnconnectedException</span><span class="p">()</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">cm</span><span class="o">.</span><span class="n">get_logs</span><span class="p">(</span><span class="n">logging_dir</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="ClipperConnection.inspect_instance"><a class="viewcode-back" href="../../clipper_connection.html#clipper_admin.ClipperConnection.inspect_instance">[docs]</a>    <span class="k">def</span> <span class="nf">inspect_instance</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Fetches performance metrics from the running Clipper cluster.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        str</span>
+<span class="sd">            The JSON string containing the current set of metrics</span>
+<span class="sd">            for this instance. On error, the string will be an error message</span>
+<span class="sd">            (not JSON formatted).</span>
+
+<span class="sd">        Raises</span>
+<span class="sd">        ------</span>
+<span class="sd">        :py:exc:`clipper.UnconnectedException`</span>
+<span class="sd">        :py:exc:`clipper.ClipperException`</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">connected</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">UnconnectedException</span><span class="p">()</span>
+        <span class="n">url</span> <span class="o">=</span> <span class="s2">&quot;http://</span><span class="si">{host}</span><span class="s2">/metrics&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">host</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">cm</span><span class="o">.</span><span class="n">get_query_addr</span><span class="p">())</span>
+        <span class="n">r</span> <span class="o">=</span> <span class="n">requests</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">url</span><span class="p">)</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="n">r</span><span class="o">.</span><span class="n">text</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">r</span><span class="o">.</span><span class="n">status_code</span> <span class="o">==</span> <span class="n">requests</span><span class="o">.</span><span class="n">codes</span><span class="o">.</span><span class="n">ok</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">r</span><span class="o">.</span><span class="n">json</span><span class="p">()</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">msg</span> <span class="o">=</span> <span class="s2">&quot;Received error status code: </span><span class="si">{code}</span><span class="s2"> and message: </span><span class="si">{msg}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                <span class="n">code</span><span class="o">=</span><span class="n">r</span><span class="o">.</span><span class="n">status_code</span><span class="p">,</span> <span class="n">msg</span><span class="o">=</span><span class="n">r</span><span class="o">.</span><span class="n">text</span><span class="p">)</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="n">ClipperException</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="ClipperConnection.set_model_version"><a class="viewcode-back" href="../../clipper_connection.html#clipper_admin.ClipperConnection.set_model_version">[docs]</a>    <span class="k">def</span> <span class="nf">set_model_version</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">version</span><span class="p">,</span> <span class="n">num_replicas</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Changes the current model version to &quot;model_version&quot;.</span>
+
+<span class="sd">        This method can be used to perform model roll-back and roll-forward. The</span>
+<span class="sd">        version can be set to any previously deployed version of the model.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        name : str</span>
+<span class="sd">            The name of the model</span>
+<span class="sd">        version : str | obj with __str__ representation</span>
+<span class="sd">            The version of the model. Note that `version`</span>
+<span class="sd">            must be a model version that has already been deployed.</span>
+<span class="sd">        num_replicas : int</span>
+<span class="sd">            The number of new containers to start with the newly</span>
+<span class="sd">            selected model version.</span>
+
+<span class="sd">        Raises</span>
+<span class="sd">        ------</span>
+<span class="sd">        :py:exc:`clipper.UnconnectedException`</span>
+<span class="sd">        :py:exc:`clipper.ClipperException`</span>
+
+<span class="sd">        Note</span>
+<span class="sd">        -----</span>
+<span class="sd">        Model versions automatically get updated when</span>
+<span class="sd">        py:meth:`clipper_admin.ClipperConnection.deploy_model()` is called. There is no need to</span>
+<span class="sd">        manually update the version after deploying a new model.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">connected</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">UnconnectedException</span><span class="p">()</span>
+        <span class="n">version</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">version</span><span class="p">)</span>
+        <span class="n">url</span> <span class="o">=</span> <span class="s2">&quot;http://</span><span class="si">{host}</span><span class="s2">/admin/set_model_version&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+            <span class="n">host</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">cm</span><span class="o">.</span><span class="n">get_admin_addr</span><span class="p">())</span>
+        <span class="n">req_json</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">({</span><span class="s2">&quot;model_name&quot;</span><span class="p">:</span> <span class="n">name</span><span class="p">,</span> <span class="s2">&quot;model_version&quot;</span><span class="p">:</span> <span class="n">version</span><span class="p">})</span>
+        <span class="n">headers</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;Content-type&#39;</span><span class="p">:</span> <span class="s1">&#39;application/json&#39;</span><span class="p">}</span>
+        <span class="n">r</span> <span class="o">=</span> <span class="n">requests</span><span class="o">.</span><span class="n">post</span><span class="p">(</span><span class="n">url</span><span class="p">,</span> <span class="n">headers</span><span class="o">=</span><span class="n">headers</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="n">req_json</span><span class="p">)</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="n">r</span><span class="o">.</span><span class="n">text</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">r</span><span class="o">.</span><span class="n">status_code</span> <span class="o">!=</span> <span class="n">requests</span><span class="o">.</span><span class="n">codes</span><span class="o">.</span><span class="n">ok</span><span class="p">:</span>
+            <span class="n">msg</span> <span class="o">=</span> <span class="s2">&quot;Received error status code: </span><span class="si">{code}</span><span class="s2"> and message: </span><span class="si">{msg}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                <span class="n">code</span><span class="o">=</span><span class="n">r</span><span class="o">.</span><span class="n">status_code</span><span class="p">,</span> <span class="n">msg</span><span class="o">=</span><span class="n">r</span><span class="o">.</span><span class="n">text</span><span class="p">)</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="n">ClipperException</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">num_replicas</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">set_num_replicas</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">num_replicas</span><span class="p">,</span> <span class="n">version</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="ClipperConnection.get_query_addr"><a class="viewcode-back" href="../../clipper_connection.html#clipper_admin.ClipperConnection.get_query_addr">[docs]</a>    <span class="k">def</span> <span class="nf">get_query_addr</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Get the IP address at which the query frontend can be reached request predictions.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        str</span>
+<span class="sd">            The address as an IP address or hostname.</span>
+
+<span class="sd">        Raises</span>
+<span class="sd">        ------</span>
+<span class="sd">        :py:exc:`clipper.UnconnectedException`</span>
+<span class="sd">            versions. All replicas for each version of each model will be stopped.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">connected</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">UnconnectedException</span><span class="p">()</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">cm</span><span class="o">.</span><span class="n">get_query_addr</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="ClipperConnection.stop_models"><a class="viewcode-back" href="../../clipper_connection.html#clipper_admin.ClipperConnection.stop_models">[docs]</a>    <span class="k">def</span> <span class="nf">stop_models</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model_names</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Stops all versions of the specified models.</span>
+
+<span class="sd">        This is a convenience method to avoid the need to explicitly list all versions</span>
+<span class="sd">        of a model when calling :py:meth:`clipper_admin.ClipperConnection.stop_versioned_models`.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        model_names : list(str)</span>
+<span class="sd">            A list of model names. All replicas of all versions of each model specified in the list</span>
+<span class="sd">            will be stopped.</span>
+
+<span class="sd">        Raises</span>
+<span class="sd">        ------</span>
+<span class="sd">        :py:exc:`clipper.UnconnectedException`</span>
+<span class="sd">            versions. All replicas for each version of each model will be stopped.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">connected</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">UnconnectedException</span><span class="p">()</span>
+        <span class="n">model_info</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_all_models</span><span class="p">(</span><span class="n">verbose</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="n">model_dict</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">for</span> <span class="n">m</span> <span class="ow">in</span> <span class="n">model_info</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">m</span><span class="p">[</span><span class="s2">&quot;model_name&quot;</span><span class="p">]</span> <span class="ow">in</span> <span class="n">model_names</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">m</span><span class="p">[</span><span class="s2">&quot;model_name&quot;</span><span class="p">]</span> <span class="ow">in</span> <span class="n">model_dict</span><span class="p">:</span>
+                    <span class="n">model_dict</span><span class="p">[</span><span class="n">m</span><span class="p">[</span><span class="s2">&quot;model_name&quot;</span><span class="p">]]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">m</span><span class="p">[</span><span class="s2">&quot;model_version&quot;</span><span class="p">])</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">model_dict</span><span class="p">[</span><span class="n">m</span><span class="p">[</span><span class="s2">&quot;model_name&quot;</span><span class="p">]]</span> <span class="o">=</span> <span class="p">[</span><span class="n">m</span><span class="p">[</span><span class="s2">&quot;model_version&quot;</span><span class="p">]]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cm</span><span class="o">.</span><span class="n">stop_models</span><span class="p">(</span><span class="n">model_dict</span><span class="p">)</span>
+        <span class="n">pp</span> <span class="o">=</span> <span class="n">pprint</span><span class="o">.</span><span class="n">PrettyPrinter</span><span class="p">(</span><span class="n">indent</span><span class="o">=</span><span class="mi">4</span><span class="p">)</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+            <span class="s2">&quot;Stopped all containers for these models and versions:</span><span class="se">\n</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                <span class="n">pp</span><span class="o">.</span><span class="n">pformat</span><span class="p">(</span><span class="n">model_dict</span><span class="p">)))</span></div>
+
+<div class="viewcode-block" id="ClipperConnection.stop_versioned_models"><a class="viewcode-back" href="../../clipper_connection.html#clipper_admin.ClipperConnection.stop_versioned_models">[docs]</a>    <span class="k">def</span> <span class="nf">stop_versioned_models</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model_versions_dict</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Stops the specified versions of the specified models.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        model_versions_dict : dict(str, list(str))</span>
+<span class="sd">            For each entry in the dict, the key is a model name and the value is a list of model</span>
+
+<span class="sd">        Raises</span>
+<span class="sd">        ------</span>
+<span class="sd">        :py:exc:`clipper.UnconnectedException`</span>
+<span class="sd">            versions. All replicas for each version of each model will be stopped.</span>
+
+<span class="sd">        Note</span>
+<span class="sd">        ----</span>
+<span class="sd">        This method will stop the currently deployed versions of models if you specify them. You</span>
+<span class="sd">        almost certainly want to use one of the other stop_* methods. Use with caution.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">connected</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">UnconnectedException</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cm</span><span class="o">.</span><span class="n">stop_models</span><span class="p">(</span><span class="n">model_versions_dict</span><span class="p">)</span>
+        <span class="n">pp</span> <span class="o">=</span> <span class="n">pprint</span><span class="o">.</span><span class="n">PrettyPrinter</span><span class="p">(</span><span class="n">indent</span><span class="o">=</span><span class="mi">4</span><span class="p">)</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+            <span class="s2">&quot;Stopped all containers for these models and versions:</span><span class="se">\n</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                <span class="n">pp</span><span class="o">.</span><span class="n">pformat</span><span class="p">(</span><span class="n">model_versions_dict</span><span class="p">)))</span></div>
+
+<div class="viewcode-block" id="ClipperConnection.stop_inactive_model_versions"><a class="viewcode-back" href="../../clipper_connection.html#clipper_admin.ClipperConnection.stop_inactive_model_versions">[docs]</a>    <span class="k">def</span> <span class="nf">stop_inactive_model_versions</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model_names</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Stops all model containers serving stale versions of the specified models.</span>
+
+<span class="sd">        For example, if you have deployed versions 1, 2, and 3 of model &quot;music_recommender&quot;</span>
+<span class="sd">        and version 3 is the current version::</span>
+
+<span class="sd">            clipper_conn.stop_inactive_model_versions([&quot;music_recommender&quot;])</span>
+
+<span class="sd">        will stop any containers serving versions 1 and 2 but will leave containers serving</span>
+<span class="sd">        version 3 untouched.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        model_names : list(str)</span>
+<span class="sd">            The names of the models whose old containers you want to stop.</span>
+
+<span class="sd">        Raises</span>
+<span class="sd">        ------</span>
+<span class="sd">        :py:exc:`clipper.UnconnectedException`</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">connected</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">UnconnectedException</span><span class="p">()</span>
+        <span class="n">model_info</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_all_models</span><span class="p">(</span><span class="n">verbose</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="n">model_dict</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">for</span> <span class="n">m</span> <span class="ow">in</span> <span class="n">model_info</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">m</span><span class="p">[</span><span class="s2">&quot;model_name&quot;</span><span class="p">]</span> <span class="ow">in</span> <span class="n">model_names</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">m</span><span class="p">[</span><span class="s2">&quot;is_current_version&quot;</span><span class="p">]:</span>
+                <span class="k">if</span> <span class="n">m</span><span class="p">[</span><span class="s2">&quot;model_name&quot;</span><span class="p">]</span> <span class="ow">in</span> <span class="n">model_dict</span><span class="p">:</span>
+                    <span class="n">model_dict</span><span class="p">[</span><span class="n">m</span><span class="p">[</span><span class="s2">&quot;model_name&quot;</span><span class="p">]]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">m</span><span class="p">[</span><span class="s2">&quot;model_version&quot;</span><span class="p">])</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">model_dict</span><span class="p">[</span><span class="n">m</span><span class="p">[</span><span class="s2">&quot;model_name&quot;</span><span class="p">]]</span> <span class="o">=</span> <span class="p">[</span><span class="n">m</span><span class="p">[</span><span class="s2">&quot;model_version&quot;</span><span class="p">]]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cm</span><span class="o">.</span><span class="n">stop_models</span><span class="p">(</span><span class="n">model_dict</span><span class="p">)</span>
+        <span class="n">pp</span> <span class="o">=</span> <span class="n">pprint</span><span class="o">.</span><span class="n">PrettyPrinter</span><span class="p">(</span><span class="n">indent</span><span class="o">=</span><span class="mi">4</span><span class="p">)</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+            <span class="s2">&quot;Stopped all containers for these models and versions:</span><span class="se">\n</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                <span class="n">pp</span><span class="o">.</span><span class="n">pformat</span><span class="p">(</span><span class="n">model_dict</span><span class="p">)))</span></div>
+
+<div class="viewcode-block" id="ClipperConnection.stop_all_model_containers"><a class="viewcode-back" href="../../clipper_connection.html#clipper_admin.ClipperConnection.stop_all_model_containers">[docs]</a>    <span class="k">def</span> <span class="nf">stop_all_model_containers</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Stops all model containers started via Clipper admin commands.</span>
+
+<span class="sd">        This method can be used to clean up leftover Clipper model containers even if the</span>
+<span class="sd">        Clipper management frontend or Redis has crashed. It can also be called without calling</span>
+<span class="sd">        ``connect`` first.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cm</span><span class="o">.</span><span class="n">stop_all_model_containers</span><span class="p">()</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Stopped all Clipper model containers&quot;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="ClipperConnection.stop_all"><a class="viewcode-back" href="../../clipper_connection.html#clipper_admin.ClipperConnection.stop_all">[docs]</a>    <span class="k">def</span> <span class="nf">stop_all</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Stops all processes that were started via Clipper admin commands.</span>
+
+<span class="sd">        This includes the query and management frontend Docker containers and all model containers.</span>
+<span class="sd">        If you started Redis independently, this will not affect Redis. It can also be called</span>
+<span class="sd">        without calling ``connect`` first.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cm</span><span class="o">.</span><span class="n">stop_all</span><span class="p">()</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Stopped all Clipper cluster and all model containers&quot;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="ClipperConnection.test_predict_function"><a class="viewcode-back" href="../../clipper_connection.html#clipper_admin.ClipperConnection.test_predict_function">[docs]</a>    <span class="k">def</span> <span class="nf">test_predict_function</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">query</span><span class="p">,</span> <span class="n">func</span><span class="p">,</span> <span class="n">input_type</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Tests that the user&#39;s function has the correct signature and can be properly saved and</span>
+<span class="sd">        loaded.</span>
+
+<span class="sd">        The function should take a dict request object like the query frontend expects JSON,</span>
+<span class="sd">        the predict function, and the input type for the model.</span>
+
+<span class="sd">        For example, the function can be called like:</span>
+<span class="sd">            clipper_conn.test_predict_function({&quot;input&quot;: [1.0, 2.0, 3.0]}, predict_func, &quot;doubles&quot;)</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        query: JSON or list of dicts</span>
+<span class="sd">            Inputs to test the prediction function on.</span>
+<span class="sd">        func: function</span>
+<span class="sd">            Predict function to test.</span>
+<span class="sd">        input_type: str</span>
+<span class="sd">            The input_type to be associated with the registered app and deployed model.</span>
+<span class="sd">            One of &quot;integers&quot;, &quot;floats&quot;, &quot;doubles&quot;, &quot;bytes&quot;, or &quot;strings&quot;.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">connected</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">connect</span><span class="p">()</span>
+        <span class="n">query_data</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">x</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="n">query</span><span class="o">.</span><span class="n">values</span><span class="p">()))</span>
+        <span class="n">query_key</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">query</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
+
+        <span class="k">if</span> <span class="n">query_key</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;input_batch&quot;</span><span class="p">:</span>
+            <span class="n">query_data</span> <span class="o">=</span> <span class="n">query_data</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">flattened_data</span> <span class="o">=</span> <span class="p">[</span>
+                <span class="n">item</span> <span class="k">for</span> <span class="n">sublist</span> <span class="ow">in</span> <span class="n">query_data</span> <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">sublist</span>
+            <span class="p">]</span>
+        <span class="k">except</span> <span class="ne">TypeError</span><span class="p">:</span>
+            <span class="k">return</span> <span class="s2">&quot;Invalid input type or JSON key&quot;</span>
+
+        <span class="n">numpy_data</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="k">if</span> <span class="n">input_type</span> <span class="o">==</span> <span class="s2">&quot;bytes&quot;</span><span class="p">:</span>
+            <span class="n">numpy_data</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">int8</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">query_data</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">flattened_data</span><span class="p">:</span>
+                <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">bytes</span><span class="p">:</span>
+                    <span class="k">return</span> <span class="s2">&quot;Invalid input type&quot;</span>
+
+        <span class="k">if</span> <span class="n">input_type</span> <span class="o">==</span> <span class="s2">&quot;integers&quot;</span><span class="p">:</span>
+            <span class="n">numpy_data</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">query_data</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">flattened_data</span><span class="p">:</span>
+                <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">int</span><span class="p">:</span>
+                    <span class="k">return</span> <span class="s2">&quot;Invalid input type&quot;</span>
+
+        <span class="k">if</span> <span class="n">input_type</span> <span class="o">==</span> <span class="s2">&quot;floats&quot;</span> <span class="ow">or</span> <span class="n">input_type</span> <span class="o">==</span> <span class="s2">&quot;doubles&quot;</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">input_type</span> <span class="o">==</span> <span class="s2">&quot;floats&quot;</span><span class="p">:</span>
+                <span class="n">numpy_data</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">query_data</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">numpy_data</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">query_data</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">flattened_data</span><span class="p">:</span>
+                <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">float</span><span class="p">:</span>
+                    <span class="k">return</span> <span class="s2">&quot;Invalid input type&quot;</span>
+
+        <span class="k">if</span> <span class="n">input_type</span> <span class="o">==</span> <span class="s2">&quot;string&quot;</span><span class="p">:</span>
+            <span class="n">numpy_data</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">str_</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">query_data</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">flattened_data</span><span class="p">:</span>
+                <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">str</span><span class="p">:</span>
+                    <span class="k">return</span> <span class="s2">&quot;Invalid input type&quot;</span>
+
+        <span class="n">s</span> <span class="o">=</span> <span class="n">StringIO</span><span class="p">()</span>
+        <span class="n">c</span> <span class="o">=</span> <span class="n">CloudPickler</span><span class="p">(</span><span class="n">s</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+        <span class="n">c</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="n">func</span><span class="p">)</span>
+        <span class="n">serialized_func</span> <span class="o">=</span> <span class="n">s</span><span class="o">.</span><span class="n">getvalue</span><span class="p">()</span>
+        <span class="n">reloaded_func</span> <span class="o">=</span> <span class="n">pickle</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">serialized_func</span><span class="p">)</span>
+
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">assert</span> <span class="n">reloaded_func</span>
+        <span class="k">except</span> <span class="ne">AssertionError</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">&quot;Function does not properly serialize and reload&quot;</span><span class="p">)</span>
+            <span class="k">return</span> <span class="s2">&quot;Function does not properly serialize and reload&quot;</span>
+
+        <span class="k">return</span> <span class="n">reloaded_func</span><span class="p">(</span><span class="n">numpy_data</span><span class="p">)</span></div></div>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2017, Dan Crankshaw.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../../',
+            VERSION:'0.2.0rc1',
+            LANGUAGE:'None',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="../../_static/jquery.js"></script>
+      <script type="text/javascript" src="../../_static/underscore.js"></script>
+      <script type="text/javascript" src="../../_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="../../_static/js/theme.js"></script>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
